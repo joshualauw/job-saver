@@ -1,8 +1,9 @@
 import { z } from "zod";
 
-import { storageGet, storageSet } from "./chrome";
+import { sessionGet, sessionSet, storageGet, storageSet } from "./chrome";
 
 const SETTINGS_KEY = "settings";
+const DRAFT_KEY = "draft";
 
 const optionalText = z.string().trim().optional();
 
@@ -41,4 +42,32 @@ export async function writeSettings(patch: Settings, adapter: StorageAdapter = c
   const next = dropBlank(settingsSchema.parse({ ...current, ...patch }));
   await adapter.set(SETTINGS_KEY, next);
   return next;
+}
+
+/** The review form's in-progress state: strings exactly as shown in the form. */
+export const draftSchema = z.object({
+  /** Raw URL of the page the draft was made from. */
+  url: z.string(),
+  inputs: z.record(z.string(), z.string()),
+  /** Keys of fields the AI could not find, for "not found" flags. */
+  missing: z.array(z.string()),
+});
+
+export type StoredDraft = z.infer<typeof draftSchema>;
+
+const sessionAdapter: StorageAdapter = { get: sessionGet, set: sessionSet };
+
+/** A corrupt or missing draft reads as `null`; it is never trusted. */
+export async function readDraft(adapter: StorageAdapter = sessionAdapter): Promise<StoredDraft | null> {
+  const parsed = draftSchema.safeParse(await adapter.get(DRAFT_KEY));
+  return parsed.success ? parsed.data : null;
+}
+
+export async function writeDraft(draft: StoredDraft, adapter: StorageAdapter = sessionAdapter): Promise<void> {
+  await adapter.set(DRAFT_KEY, draft);
+}
+
+/** Writing `null` is "no draft"; `readDraft` rejects it. */
+export async function clearDraft(adapter: StorageAdapter = sessionAdapter): Promise<void> {
+  await adapter.set(DRAFT_KEY, null);
 }

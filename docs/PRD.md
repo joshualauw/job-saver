@@ -51,8 +51,9 @@ product.
 2. Core logic (fields, schemas, sheet mapping, URL cleaning): done.
 3. Page extraction for Jobstreet: done.
 4. AI extraction and a minimal API-key field: done.
-5. Editable form with "not found" flags, draft persistence, status and date logic: next.
-6. Google Sheets: sign-in, append, duplicate lookup, update.
+5. Editable form with "not found" flags, draft persistence, status and date logic: done (Save
+   validates only; nothing is written yet).
+6. Google Sheets: sign-in, append, duplicate lookup, update: next.
 7. Settings view and first-run onboarding.
 8. Polish: toasts, loading states, tab-change handling, dark mode.
 

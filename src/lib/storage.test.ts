@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readSettings, writeSettings } from "./storage";
+import { clearDraft, readDraft, readSettings, writeDraft, writeSettings } from "./storage";
 import type { StorageAdapter } from "./storage";
 
 function memoryAdapter(initial: Record<string, unknown> = {}) {
@@ -48,5 +48,39 @@ describe("settings storage", () => {
   ])("treats %s in storage as no settings", async (_label, stored) => {
     const { adapter } = memoryAdapter({ settings: stored });
     expect(await readSettings(adapter)).toEqual({});
+  });
+});
+
+describe("draft storage", () => {
+  const draft = {
+    url: "https://id.jobstreet.com/id/job/1",
+    inputs: { company: "Ryvo", skills: "node.js" },
+    missing: ["address"],
+  };
+
+  it("reads null when there is no draft", async () => {
+    expect(await readDraft(memoryAdapter().adapter)).toBeNull();
+  });
+
+  it("round-trips a draft", async () => {
+    const { adapter } = memoryAdapter();
+    await writeDraft(draft, adapter);
+    expect(await readDraft(adapter)).toEqual(draft);
+  });
+
+  it("clears a draft", async () => {
+    const { adapter } = memoryAdapter();
+    await writeDraft(draft, adapter);
+    await clearDraft(adapter);
+    expect(await readDraft(adapter)).toBeNull();
+  });
+
+  it.each([
+    ["a string", "oops"],
+    ["non-string inputs", { url: "u", inputs: { company: 1 }, missing: [] }],
+    ["missing fields", { url: "u" }],
+  ])("treats %s as no draft", async (_label, stored) => {
+    const { adapter } = memoryAdapter({ draft: stored });
+    expect(await readDraft(adapter)).toBeNull();
   });
 });

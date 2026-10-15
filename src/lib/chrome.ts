@@ -25,6 +25,16 @@ export async function storageSet(key: string, value: unknown): Promise<void> {
   await chrome.storage.local.set({ [key]: value });
 }
 
+/** Session storage survives the panel closing but not the browser quitting. */
+export async function sessionGet(key: string): Promise<unknown> {
+  const result = await chrome.storage.session.get(key);
+  return result[key];
+}
+
+export async function sessionSet(key: string, value: unknown): Promise<void> {
+  await chrome.storage.session.set({ [key]: value });
+}
+
 /** Runs a bundled script file in the tab and returns the script's return value. */
 export async function executeScriptFile(tabId: number, file: string): Promise<unknown> {
   const [injection] = await chrome.scripting.executeScript({ target: { tabId }, files: [file] });

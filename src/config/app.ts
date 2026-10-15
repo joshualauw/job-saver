@@ -5,6 +5,8 @@ export const appConfig = {
   summaryLanguage: "English",
   /** Status given to a newly saved job. Must be one of the `status` field's option values. */
   defaultStatus: "saved",
+  /** Status that stamps `appliedAt` with today's date. Must be a `status` option value. */
+  appliedStatus: "applied",
   /** Sheet tab used when none is configured. */
   defaultSheetTab: "Jobs",
   /** Upper bound on page text sent to the model, in characters. */
