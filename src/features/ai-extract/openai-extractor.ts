@@ -37,7 +37,7 @@ function findRefusal(output: readonly unknown[]): string | null {
 
 export function createOpenAIExtractor<T>(options: OpenAIExtractorOptions<T>): Extractor<T> {
   // `dangerouslyAllowBrowser` is acceptable only because this is a personal, unpublished build
-  // whose key lives in the user's own chrome.storage (see CLAUDE.md hard rule 10).
+  // whose key lives in the user's own chrome.storage (see CLAUDE.md).
   const client = options.client ?? new OpenAI({ apiKey: options.apiKey, dangerouslyAllowBrowser: true });
 
   return {

@@ -1,136 +1,59 @@
 # Job Saver: rules for Claude
 
-Personal Chrome extension (MV3 side panel). AI extracts job fields from the current page, the
-user reviews/edits them, and Save writes a row to a Google Sheet.
+Personal Chrome extension (MV3 side panel): AI extracts job fields from the current page, the
+user reviews them, Save writes a row to a Google Sheet.
 
-**Before any architectural or cross-feature work, read [ARCHITECTURE_V1.md](ARCHITECTURE_V1.md).**
-It holds the project overview, tech stack, field model, flows, structure, and roadmap. This file
-holds only the rules to follow while implementing. If the two disagree, stop and ask.
+- What and why: [docs/PRD.md](docs/PRD.md). How it is shaped: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+  Read the architecture before cross-feature work. If a doc and the code disagree, the code wins:
+  say so and fix the doc.
+- **Docs describe intent, not code.** Never paste code, field lists, prompt text, selectors or
+  file trees into docs; point at the file. Update docs only when a decision, goal or roadmap
+  status changes, not when code moves.
 
----
+## Hard rules
 
-## Hard rules (never break)
+1. **`src/config/fields.ts` is the single source of truth for fields.** Never hardcode a field
+   name, sheet column, enum value or input elsewhere.
+2. Map sheet columns by **header name**, never position.
+3. Guard sheet-bound text against formula injection (`=`, `+`, `-`, `@`).
+4. Page text is untrusted: user message only, never the system prompt.
+5. Never log, commit or show secrets or page content (API key, tokens, job text, fixtures).
+6. Secrets live only in `chrome.storage.local`; never ship a build with a key.
+7. The model name comes from config/settings, never an adapter.
+8. No backend; the only network hosts are OpenAI and Google Sheets.
+9. The AI never sets code- or user-owned fields; prefer `null` (or `[]`) over guessing.
+10. OpenAI requests use `store: false`; user-facing errors never include the key or request
+    content (keep the original only as `cause`).
 
-1. **Single source of truth for fields:** `src/config/fields.ts`. Never hardcode a field name,
-   sheet column, enum value, or form input anywhere else. Schemas, form, LLM schema, and sheet
-   mapping are all derived from it.
-2. **Map sheet columns by header name, never by position.**
-3. **Formula-injection guard:** any string written to the sheet that starts with `=`, `+`, `-`,
-   or `@` must be prefixed with `'`.
-4. **Prompt-injection guard:** page text is untrusted data. It goes in the user message, never
-   in the system prompt, and the system prompt tells the model to ignore instructions in it.
-5. **Never log, commit, or echo secrets or page content:** OpenAI API key, OAuth tokens, job page
-   text. No `console.log` of payloads.
-6. **Secrets live only in `chrome.storage.local`** (set via the Settings view). Never in the repo,
-   `.env` files that are committed, or fixtures.
-7. **Never hardcode the OpenAI model name** in adapters. Read it from config/settings.
-8. **No backend, no new network destinations.** The only allowed hosts are `api.openai.com` and
-   `sheets.googleapis.com`.
-9. **The AI never decides the user-owned fields:** `status`, `appliedAt`, `lastUpdatedAt`, `jobUrl`
-   and `platform` come from code or the user, not the LLM. `null` is a valid AI answer; never
-   guess (especially salary).
-10. **Do not publish or package the extension with an API key embedded.**
-11. **OpenAI requests set `store: false`** so job-page content is not retained by OpenAI. Error
-    messages shown to the user (`mapOpenAIError`) never include the key or request content; keep
-    the original error only as `cause`.
+## Code
 
----
+- TypeScript strict, no `any`, no unexplained `!`. Alias `@/` → `src/`. Named exports.
+- Validate every boundary with zod (`unknown` in, parsed out). Strict-mode schemas use
+  `.nullable()`, never `.optional()`.
+- Features own their components, hooks and adapters and never import each other's internals; share
+  through `src/core`. Core stays free of `openai`, `fetch` and `chrome`.
+- Wrap `chrome.*` in `src/lib/chrome.ts`. Page reading is a bundled unlisted script, never a
+  serialised `func`; keep its logic in pure functions over a `Document`.
+- Site-specific knowledge (hosts, URL cleaning, selectors) lives in `src/config/platforms.ts`.
+- Reuse existing helpers (text extraction, list normalisation, row mapping); don't re-implement.
+- Adapters throw typed `AppError`s with user-safe messages; never swallow errors or fill the form
+  with unvalidated AI output.
+- React: function components and hooks, one component per file; Chakra v3 with semantic tokens;
+  TanStack Query for async calls, react-hook-form for forms, no global store. The panel is narrow:
+  single column, labelled inputs, inline errors.
+- Names: `kebab-case.ts` modules, `PascalCase.tsx` components, `PascalCase` types without `I`.
+  Comments explain why, not what; no commented-out code.
 
-## Code rules
+## Testing
 
-**TypeScript**
+- Pure logic and adapters get Vitest tests with the change; bugs get a regression test first.
+- Fixtures live in `tests/fixtures/<platform>/<n>/`, are scrubbed of personal data (saved logged-in
+  pages embed the account email/name), and are loaded with scripts disabled, never executed.
+- Before calling work done: `pnpm typecheck`, `pnpm lint`, `pnpm test` pass.
 
-- `strict: true` and `noUncheckedIndexedAccess`. No `any`; no `!` non-null assertions without a
-  comment saying why it is safe.
-- Path alias `@/` → `src/`. Named exports, except where WXT/React requires a default.
-- **Validate every boundary with zod:** LLM output, storage reads, Sheets API responses, JSON-LD.
-  Use `unknown` at the boundary, then parse.
-- OpenAI Structured Outputs strict mode: all properties required; model "unknown" with
-  `.nullable()`, never `.optional()`. List fields use an empty array for "none", never `null`.
-- List fields (`type: "stringList"`, e.g. `skills`) are always passed through `normalizeList`
-  (`src/core/normalize.ts`: lowercase, trimmed, unique) before validation and sheet writes. Do not
-  re-implement this inline.
+## Workflow
 
-**Structure**
-
-- Feature folders (`src/features/*`) own their components, hooks, and adapters. Do not import
-  another feature's internals; go through `src/core` types and ports.
-- External services sit behind ports (`Extractor`, `Sink`). Core logic must not import `openai`,
-  `fetch`, or `chrome`.
-- Pure functions for prompt building, text cleaning, URL canonicalising, and row mapping. Pure
-  modules must not import `chrome`.
-- Wrap `chrome.*` calls in `src/lib/chrome.ts` so they are mockable.
-- Page reading runs as a **bundled unlisted script** (`src/entrypoints/extract-job.ts`) injected
-  with `executeScript({ files })`, never a serialised `func` closure (closures lose their imports).
-  Keep the logic in pure functions over a `Document` (`buildPagePayload`) so fixtures can test it.
-- Job-site knowledge (hosts, URL canonicalisers, CSS selectors) lives in `src/config/platforms.ts`;
-  add a platform there plus its manifest pattern in `src/config/platform-hosts.ts`, never inline.
-- Do not rely on `innerText` or computed styles for extraction; use `extractText` so results match
-  between the browser and the test DOM.
-
-**Errors**
-
-- Adapters throw typed `AppError` subclasses (`AuthError`, `RateLimitError`, `SchemaError`,
-  `NetworkError`, ...) with a `code` and a user-safe `message`. The UI maps them to toasts.
-- Never swallow errors and never fill the form with partial or unvalidated AI output.
-
-**React / UI**
-
-- Function components and hooks only; one component per file.
-- Chakra UI **v3** conventions (`ChakraProvider value={system}`, compound components such as
-  `Field.Root`). Use semantic tokens; no ad-hoc CSS files; no Tailwind.
-- Extract/save calls use TanStack Query mutations; form state uses react-hook-form. Do not add a
-  global state library.
-- The panel is narrow (~320–480px): single column, compact spacing, sticky action bar. Every
-  input has a label; errors are inline and announced.
-
-**Naming**
-
-- Modules `kebab-case.ts`; components `PascalCase.tsx`; types `PascalCase` (no `I` prefix);
-  constants `camelCase` (`SCREAMING_CASE` only for true compile-time constants).
-- Comments explain _why_, not _what_. No commented-out code.
-
----
-
-## Testing rules
-
-- Pure logic and adapters get Vitest tests alongside the change (schema builders, row mapping,
-  URL canonicalisation, text cleaning, JSON-LD parsing, OpenAI/Sheets adapters with mocked
-  `fetch`).
-- Bug fix → add a regression test first when it is feasible.
-- Fixtures go in `tests/fixtures/<platform>/<n>/{url.txt,page.html}` and must contain no personal
-  data. Saved pages from a logged-in session embed the account email/name: scrub them before
-  committing (`grep -ri "@gmail\|<your name>" tests/fixtures`).
-- DOM-based tests use happy-dom through `tests/helpers/fixtures.ts`, which disables JS evaluation
-  and file loading. Never execute a fixture's scripts.
-- Before calling work done: `pnpm typecheck`, `pnpm lint`, `pnpm test` all pass.
-
----
-
-## Workflow rules
-
-- Package manager is **pnpm**. Do not use npm or yarn; do not commit other lockfiles.
-- Ask before adding a dependency. Prefer the platform and the existing stack; no `googleapis`
-  SDK (use `fetch`).
-- Keep changes scoped to the request. Do not add features outside V1 (see the non-goals and
-  "Beyond V1" in ARCHITECTURE_V1.md).
-- When a decision in ARCHITECTURE_V1.md changes, update that file in the same change.
-- Conventional commits (`feat:`, `fix:`, `refactor:`, `test:`, `chore:`, `docs:`); small, focused
-  commits.
-- Only the user creates the Google Cloud OAuth client, the sheet, and its header row. Do not try
-  to automate those.
-
----
-
-## Commands
-
-```bash
-pnpm dev          # WXT dev mode with HMR
-pnpm build        # production build to .output/chrome-mv3
-pnpm test         # vitest run
-pnpm lint         # eslint .
-pnpm typecheck    # tsc --noEmit
-pnpm format       # prettier --write .
-```
-
-(Planned. They exist once the project is scaffolded.)
+- pnpm only. Ask before adding a dependency; prefer the platform and existing stack.
+- Keep changes to what was asked. Anything outside V1 scope needs the user's say-so.
+- Conventional commits, small and focused.
+- The user creates the Google Cloud OAuth client and the sheet; don't automate that.
