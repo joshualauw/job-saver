@@ -1,0 +1,9 @@
+node_modules
+.output
+.wxt
+coverage
+.env
+.env.*
+*.log
+.claude/settings.local.json
+web-ext.config.ts
