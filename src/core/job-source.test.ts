@@ -4,8 +4,8 @@ import { platforms } from "@/config/platforms";
 
 import { resolveJobSource } from "./job-source";
 
-// URL shapes below are synthetic (see the note in config/platforms.ts); replace them with
-// fixtures from real pages once collected.
+// Synthetic edge cases. The real `/id/job/<id>` shape is verified against saved pages in
+// tests/jobstreet-extraction.test.ts; the `?jobId=` search-page case is still unverified.
 describe("resolveJobSource with the Jobstreet platform", () => {
   const resolve = (url: string) => resolveJobSource(url, platforms);
 

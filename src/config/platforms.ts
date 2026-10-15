@@ -6,8 +6,9 @@ import { stripTrackingParams } from "@/lib/url";
 const JOB_PATH = /^(?:\/[a-z]{2}(?:-[a-z]{2})?)?\/job\/\d+/i;
 
 /**
- * NOTE: URL shapes are unverified against live pages. Confirm them with real Jobstreet URLs
- * and add fixtures when implementing page extraction (ARCHITECTURE_V1.md §7.4).
+ * Verified against saved pages in tests/fixtures/jobstreet: `/id/job/<id>` URLs and the
+ * `data-automation` hooks below (class names are hashed, these attributes are stable).
+ * Not yet verified: the `?jobId=` search-page fallback in `canonicalizeUrl`.
  */
 const jobstreet: PlatformDef = {
   id: "jobstreet",
@@ -23,6 +24,17 @@ const jobstreet: PlatformDef = {
     if (jobId && /^\d+$/.test(jobId)) return new URL(`${url.origin}/job/${jobId}`);
 
     return stripTrackingParams(url);
+  },
+  content: {
+    facts: {
+      "Job title": '[data-automation="job-detail-title"]',
+      Company: '[data-automation="advertiser-name"]',
+      Location: '[data-automation="job-detail-location"]',
+      "Work type": '[data-automation="job-detail-work-type"]',
+      Salary: '[data-automation="job-detail-salary"]',
+      Classification: '[data-automation="job-detail-classifications"]',
+    },
+    description: '[data-automation="jobAdDetails"]',
   },
 };
 

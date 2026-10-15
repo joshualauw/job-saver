@@ -4,8 +4,8 @@ Project overview, tech stack, design, and roadmap for **V1**. Coding rules and c
 must be followed while implementing live in [CLAUDE.md](CLAUDE.md). When a decision here changes,
 update this file in the same change.
 
-- **Status:** roadmap steps 1-2 done (scaffold + core logic with unit tests). Next: step 3,
-  page extraction.
+- **Status:** roadmap steps 1-3 done (scaffold, core logic, page extraction). Next: step 4,
+  AI extraction.
 - **Scope:** personal, single-user Chrome extension. No backend, no store publishing.
 
 ---
@@ -121,6 +121,7 @@ job-saver/
 └─ src/
    ├─ entrypoints/
    │  ├─ background.ts          # open side panel on action click; tab-change relay
+   │  ├─ extract-job.ts         # unlisted script injected into the job page; returns PagePayload
    │  └─ sidepanel/
    │     ├─ index.html
    │     ├─ main.tsx            # providers: Chakra, QueryClient
@@ -128,14 +129,18 @@ job-saver/
    ├─ config/
    │  ├─ fields.ts              # FieldDef[]: THE source of truth (§7)
    │  ├─ app.ts                 # model name, token budget, default status, etc.
-   │  └─ platforms.ts           # hostname → platform name; URL canonicalisers
+   │  ├─ platforms.ts           # per platform: host match, URL canonicaliser, content selectors
+   │  └─ platform-hosts.ts      # manifest host patterns (import-free so wxt.config.ts can load it)
    ├─ core/
    │  ├─ schema.ts              # buildFormSchema / buildLlmSchema
-   │  ├─ types.ts               # JobValues, PagePayload, ports (Extractor, Sink)
+   │  ├─ types.ts               # FieldDef, ValuesOf, PlatformDef, ports (Extractor, Sink)
+   │  ├─ page-payload.ts        # PagePayload zod schema + type
+   │  ├─ job-source.ts          # platform + clean job URL from a page URL
+   │  ├─ normalize.ts           # list normalisation (skills)
    │  ├─ errors.ts              # typed AppError subclasses
    │  └─ row-mapping.ts         # toSheetRow / fromSheetRow (pure)
    ├─ features/
-   │  ├─ page-extract/          # executeScript func, JSON-LD parse, text cleaning
+   │  ├─ page-extract/          # buildPagePayload (pure), dom-text, json-ld, truncate, inject adapter
    │  ├─ ai-extract/            # OpenAIExtractor, prompt, input truncation
    │  ├─ job-form/              # JobForm, field components, draft persistence
    │  ├─ sheet-sync/            # GoogleSheetsSink, auth, duplicate lookup
@@ -156,12 +161,21 @@ Feature folders own their components, hooks, and adapters. Cross-feature code go
 ## 6. End-to-end flow
 
 1. User opens the side panel on a Jobstreet job page and clicks **Analyze**.
-2. `page-extract` runs in the page via `chrome.scripting.executeScript` and returns:
-   - the final `location.href` and `document.title`
-   - any `schema.org/JobPosting` JSON-LD (`<script type="application/ld+json">`)
-   - cleaned visible text (`innerText` of `main`/`body`, with nav/footer/script/style noise
-     removed, whitespace collapsed, truncated to a token budget)
-   - the user's current text selection, if any (preferred over full-page text when present)
+2. `page-extract` injects the bundled `extract-job.js` into the tab
+   (`chrome.scripting.executeScript({ files })`); its return value is a `PagePayload`:
+   - `url` (`location.href`) and `title` (`document.title`)
+   - `facts`: labelled values read through the platform's CSS selectors (Jobstreet: title,
+     company, location, work type, salary, classification)
+   - `description`: cleaned text of the ad body, truncated to `maxPageTextChars`
+   - `jsonLd`: any `schema.org/JobPosting` objects (Jobstreet ships none; other sites may)
+   - `contentSource`: where `description` came from. Order of precedence: the user's text
+     selection (if ≥ 40 chars), the platform's selectors, then a generic fallback
+     (`main` / `body` without nav/footer/aside)
+
+   The panel validates the result with `pagePayloadSchema` before using it. Text is produced by
+   our own DOM walker (`dom-text.ts`), not `innerText`, so output is identical in a browser and
+   in the happy-dom tests.
+
 3. **Deterministic derivation** (no AI) fills fields where code is more reliable than a model:
    `jobUrl` (canonicalised), `platform` (from hostname), default `status`, etc. (§7.2).
 4. `ai-extract` sends the page payload and field hints to OpenAI with a strict JSON schema and
@@ -244,11 +258,34 @@ interface FieldDef {
 
 ### 7.4 Platforms (`config/platforms.ts`)
 
-A list of `{ name, matchHost, canonicalizeUrl }` entries. V1 ships one: **Jobstreet**.
-Jobstreet runs on regional hosts, so match on the Jobstreet registrable domain rather than a
-single hostname. Exact URL shapes and which query params are safe to strip must be verified
-against real pages and covered by fixtures (§12) when implementing. Unknown hosts fall back to
-a generic cleaner (strip tracking params and fragment, keep path) and `platform` = hostname.
+A list of `{ id, name, matchesHost, canonicalizeUrl, content? }` entries. V1 ships one:
+**Jobstreet**. It runs on regional hosts, so `matchesHost` matches the Jobstreet registrable
+domain rather than a single hostname (and `platform-hosts.ts` lists the manifest patterns).
+Unknown hosts fall back to a generic cleaner (strip tracking params and fragment, keep path),
+`platform` = hostname, and generic page text.
+
+**Verified against saved pages** (`tests/fixtures/jobstreet/{1,2,3}`):
+
+- URL shape: `https://id.jobstreet.com/id/job/<id>?ref=…&origin=…&pos=…#sol=…` canonicalises to
+  `https://id.jobstreet.com/id/job/<id>`. The `?jobId=` search-page fallback is still unverified.
+- No `JobPosting` JSON-LD; the only block is a `WebSite` search-action stub.
+- Class names are hashed, but `data-automation` attributes are stable and each appears once:
+
+  | Fact           | Selector                                                                                                |
+  | -------------- | ------------------------------------------------------------------------------------------------------- |
+  | Job title      | `[data-automation="job-detail-title"]`                                                                  |
+  | Company        | `[data-automation="advertiser-name"]`                                                                   |
+  | Location       | `[data-automation="job-detail-location"]` (remote shown as `(Jarak jauh)`)                              |
+  | Work type      | `[data-automation="job-detail-work-type"]` (`Full time`, `Kontrak/Temporer`)                            |
+  | Salary         | `[data-automation="job-detail-salary"]` (`Rp 7.000.000 – Rp 9.000.000 per month`, `Rp 70,000 per hour`) |
+  | Classification | `[data-automation="job-detail-classifications"]`                                                        |
+  | Ad body        | `[data-automation="jobAdDetails"]`                                                                      |
+
+- Pages are Indonesian with mixed English, and number separators vary (`.` vs `,`), which is why
+  interpretation is left to the model (§8) and extraction only delivers clean labelled text.
+
+If Jobstreet changes its markup the fixture tests keep passing (they are snapshots), so refresh
+the fixtures from a live page whenever extraction in the real browser looks wrong.
 
 ### 7.5 List fields (`type: "stringList"`)
 
@@ -354,10 +391,13 @@ The field list and prompt live in the repo; secrets do not.
 
 - Page content and the API key leave the machine only to `api.openai.com` and
   `sheets.googleapis.com`.
-- Minimal permissions: `sidePanel`, `storage`, `identity`, `scripting`, `activeTab`;
-  `host_permissions` only for the two APIs. If `activeTab` proves insufficient for
-  panel-initiated `executeScript`, fall back to broader host permissions for this personal build
-  and record it here.
+- Minimal permissions. Today: `sidePanel`, `storage`, `scripting`, `activeTab`, plus
+  `host_permissions` for the Jobstreet domains (`config/platform-hosts.ts`). `identity` and the
+  OpenAI/Sheets API hosts arrive with steps 4 and 6.
+- Why host permissions on top of `activeTab`: the side panel stays open across tab switches, but
+  `activeTab` is only granted for the tab where the toolbar icon was clicked. Jobstreet pages are
+  therefore readable without re-clicking; any other site still works via `activeTab` after an
+  icon click, and otherwise fails with a clear `PageAccessError`.
 - Two mandatory mitigations: prompt-injection guard (§8) and formula-injection guard (§9.4).
 
 ---
@@ -369,8 +409,11 @@ The field list and prompt live in the repo; secrets do not.
   canonicalisation; text cleaning/truncation; JSON-LD parsing.
 - **Adapter tests with mocked `fetch`:** OpenAI extractor (valid/invalid/refusal) and Sheets sink
   (append, update, duplicate found, 401 → token refresh).
-- **Fixtures:** saved HTML snapshots of real Jobstreet pages under `tests/fixtures/` for
-  extraction regression tests; strip anything personal.
+- **Fixtures:** saved HTML snapshots of real Jobstreet pages under
+  `tests/fixtures/<platform>/<n>/{url.txt,page.html}` for extraction regression tests
+  (`tests/jobstreet-extraction.test.ts`). Loaded into happy-dom with JS evaluation and file loading
+  disabled (`tests/helpers/fixtures.ts`). **Scrub personal data** (account email, name) before
+  committing; logged-in pages embed it in the header.
 - **Manual smoke test** after significant changes: analyze a posting, edit, save, re-save the same
   URL (edit mode), change status (`lastUpdatedAt` set), remove a header (clear error).
 - Not in V1: end-to-end browser automation.
@@ -399,8 +442,11 @@ Load unpacked from `.output/chrome-mv3` for non-dev use.
 1. **Scaffold (done):** WXT + React + TS strict + Chakra v3 + ESLint/Prettier/Vitest; `git init`; the
    side panel opens from the toolbar icon.
 2. **Core (done):** field config, schema builders, row mapping, URL canonicalisation (+ unit
-   tests). Jobstreet URL shapes are still unverified; confirm with real URLs in step 3.
-3. **Page extraction:** `executeScript` payload, JSON-LD, text cleaning; verify `activeTab`.
+   tests).
+3. **Page extraction (done):** injected unlisted script, selector-based facts + ad body, text
+   cleaning/truncation, JSON-LD, selection and generic fallbacks, Analyze + preview in the panel.
+   Remaining manual check: confirm in real Chrome that the Jobstreet host permission covers a
+   second tab without re-clicking the icon (§11).
 4. **AI extraction:** OpenAI adapter, prompt, structured output, error mapping.
 5. **Form:** render from config, "not found" flags, draft persistence, status/date logic.
 6. **Sheets:** OAuth setup, header read, append, duplicate lookup, update + `lastUpdatedAt`.

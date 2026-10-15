@@ -1,4 +1,4 @@
-export type ErrorCode = "auth" | "rate_limit" | "schema" | "network" | "missing_columns";
+export type ErrorCode = "auth" | "rate_limit" | "schema" | "network" | "missing_columns" | "page_access";
 
 /** Base class: `message` is always safe to show to the user. */
 export class AppError extends Error {
@@ -32,6 +32,13 @@ export class SchemaError extends AppError {
 export class NetworkError extends AppError {
   constructor(message: string, options?: { cause?: unknown }) {
     super("network", message, options);
+  }
+}
+
+/** The current tab cannot be read (restricted page, or no permission for this tab). */
+export class PageAccessError extends AppError {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super("page_access", message, options);
   }
 }
 

@@ -57,6 +57,13 @@ holds only the rules to follow while implementing. If the two disagree, stop and
 - Pure functions for prompt building, text cleaning, URL canonicalising, and row mapping. Pure
   modules must not import `chrome`.
 - Wrap `chrome.*` calls in `src/lib/chrome.ts` so they are mockable.
+- Page reading runs as a **bundled unlisted script** (`src/entrypoints/extract-job.ts`) injected
+  with `executeScript({ files })`, never a serialised `func` closure (closures lose their imports).
+  Keep the logic in pure functions over a `Document` (`buildPagePayload`) so fixtures can test it.
+- Job-site knowledge (hosts, URL canonicalisers, CSS selectors) lives in `src/config/platforms.ts`;
+  add a platform there plus its manifest pattern in `src/config/platform-hosts.ts`, never inline.
+- Do not rely on `innerText` or computed styles for extraction; use `extractText` so results match
+  between the browser and the test DOM.
 
 **Errors**
 
@@ -88,7 +95,11 @@ holds only the rules to follow while implementing. If the two disagree, stop and
   URL canonicalisation, text cleaning, JSON-LD parsing, OpenAI/Sheets adapters with mocked
   `fetch`).
 - Bug fix → add a regression test first when it is feasible.
-- Fixtures go in `tests/fixtures/` and must contain no personal data.
+- Fixtures go in `tests/fixtures/<platform>/<n>/{url.txt,page.html}` and must contain no personal
+  data. Saved pages from a logged-in session embed the account email/name: scrub them before
+  committing (`grep -ri "@gmail\|<your name>" tests/fixtures`).
+- DOM-based tests use happy-dom through `tests/helpers/fixtures.ts`, which disables JS evaluation
+  and file loading. Never execute a fixture's scripts.
 - Before calling work done: `pnpm typecheck`, `pnpm lint`, `pnpm test` all pass.
 
 ---

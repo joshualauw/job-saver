@@ -58,6 +58,14 @@ export type LlmValuesOf<Fs extends readonly FieldDef[]> = {
   -readonly [F in Fs[number] as F extends { source: "ai" } ? F["key"] : never]: LlmFieldValue<F>;
 };
 
+/** Where to find a platform's job content in the page DOM. */
+export interface PlatformContentSelectors {
+  /** Label → CSS selector. The first match's text becomes a labelled fact for the extractor. */
+  readonly facts: Readonly<Record<string, string>>;
+  /** CSS selector of the main job ad body. */
+  readonly description: string;
+}
+
 export interface PlatformDef {
   /** Stable identifier, e.g. "jobstreet". */
   readonly id: string;
@@ -66,6 +74,8 @@ export interface PlatformDef {
   matchesHost(hostname: string): boolean;
   /** Returns the clean, canonical job URL for this platform. */
   canonicalizeUrl(url: URL): URL;
+  /** Absent → the generic whole-page fallback is used. */
+  readonly content?: PlatformContentSelectors;
 }
 
 export interface JobSource {
