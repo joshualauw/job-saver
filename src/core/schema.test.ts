@@ -24,6 +24,7 @@ const validJob: JobValues = {
   minSalary: 8_000_000,
   maxSalary: 12_000_000,
   summary: "Builds APIs.",
+  notes: null,
 };
 
 describe("buildFormSchema", () => {

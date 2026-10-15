@@ -30,6 +30,9 @@ holds only the rules to follow while implementing. If the two disagree, stop and
    and `platform` come from code or the user, not the LLM. `null` is a valid AI answer; never
    guess (especially salary).
 10. **Do not publish or package the extension with an API key embedded.**
+11. **OpenAI requests set `store: false`** so job-page content is not retained by OpenAI. Error
+    messages shown to the user (`mapOpenAIError`) never include the key or request content; keep
+    the original error only as `cause`.
 
 ---
 

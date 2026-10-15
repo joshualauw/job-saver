@@ -25,6 +25,7 @@ const values = {
   minSalary: 8_000_000,
   maxSalary: null,
   summary: "Builds APIs.",
+  notes: "BPJS; 9-5 working hours",
 };
 
 describe("guardFormula", () => {
@@ -58,11 +59,12 @@ describe("toSheetRow", () => {
       8_000_000,
       "",
       "Builds APIs.",
+      "BPJS; 9-5 working hours",
     ]);
   });
 
   it("maps by header name, not position, and leaves unknown columns blank", () => {
-    const shuffled = ["Notes", ...[...header].reverse()];
+    const shuffled = ["Comments", ...[...header].reverse()];
     const row = toSheetRow(fields, values, shuffled);
     expect(row).toHaveLength(shuffled.length);
     expect(row[0]).toBe("");

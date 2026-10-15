@@ -1,5 +1,5 @@
 import { buildFormSchema, buildLlmSchema } from "@/core/schema";
-import type { FieldDef, ValuesOf } from "@/core/types";
+import type { FieldDef, LlmValuesOf, ValuesOf } from "@/core/types";
 
 const contractTypes = [
   { value: "full_time", label: "Full-time" },
@@ -85,7 +85,7 @@ export const fields = [
     source: "ai",
     nullable: true,
     options: locationTypes,
-    hint: "Onsite, hybrid, or remote. Null if not stated.",
+    hint: "Remote or hybrid only when the posting says so (e.g. remote, jarak jauh, hybrid); otherwise onsite. Jobstreet postings are mostly onsite and rarely state it, so default to onsite rather than null.",
   },
   {
     key: "platform",
@@ -143,7 +143,7 @@ export const fields = [
     label: "Skills",
     type: "stringList",
     source: "ai",
-    hint: "Technical skills the posting asks for or mentions: languages, frameworks, libraries, databases, cloud/tools, and methodologies. Lowercase, short canonical names such as node.js, postgres, typescript, java, mvc. No soft skills, degrees, or duplicates. Empty array if none.",
+    hint: "Short lowercase tags, at most 12, ordered technologies, then architecture, then domain (roughly 60/30/10, only what the posting states). Technologies: specific frameworks, libraries, databases, cloud and tools, e.g. node.js, next.js, postgres; prefer a framework over its language, and use the language only when no framework is named; never git, sql, database, html or css. Architecture: mvc, mvvm, microservices, oop. Domain: fintech, ats, crm, pos. No soft skills or general practices (debugging, problem solving, deployment). Empty array if none.",
   },
   {
     key: "salaryPeriod",
@@ -191,10 +191,21 @@ export const fields = [
     nullable: true,
     hint: "1-3 neutral sentences on what the role is and anything notable. Do not repeat the other fields.",
   },
+  {
+    key: "notes",
+    column: "Notes",
+    label: "Notes",
+    type: "text",
+    source: "ai",
+    nullable: true,
+    hint: "Specific requirements, perks and conditions outside the core job, as short phrases separated by '; ': e.g. BPJS or insurance, working hours, visa or work-permit requirements, relocation support, bonuses, probation, sister company. Do not repeat the summary or other fields. Null if none are stated.",
+  },
 ] as const satisfies readonly FieldDef[];
 
 export type JobFieldKey = (typeof fields)[number]["key"];
 export type JobValues = ValuesOf<typeof fields>;
+/** What the model returns: AI-sourced fields only. */
+export type LlmJobValues = LlmValuesOf<typeof fields>;
 
 export const jobFormSchema = buildFormSchema(fields);
 export const jobLlmSchema = buildLlmSchema(fields);

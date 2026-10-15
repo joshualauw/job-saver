@@ -1,3 +1,5 @@
+import type { PagePayload } from "./page-payload";
+
 export type FieldSource = "ai" | "derived" | "user";
 /** `stringList` is a list of lowercase strings (e.g. skills); one comma-separated sheet cell. */
 export type FieldType = "string" | "text" | "number" | "date" | "enum" | "stringList";
@@ -83,4 +85,9 @@ export interface JobSource {
   readonly platform: string;
   /** Clean job URL for the Job URL column. */
   readonly jobUrl: string;
+}
+
+/** Turns page content into typed values (OpenAI today); implementations live in features. */
+export interface Extractor<T> {
+  extract(payload: PagePayload): Promise<T>;
 }

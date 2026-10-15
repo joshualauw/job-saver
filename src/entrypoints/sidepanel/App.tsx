@@ -1,15 +1,21 @@
-import { Alert, Box, Button, Heading, Stack, Text } from "@chakra-ui/react";
+import { Alert, Box, Button, Collapsible, Heading, Stack, Text } from "@chakra-ui/react";
 
 import { AppError } from "@/core/errors";
+import { JobDraftPreview } from "@/features/ai-extract/JobDraftPreview";
 import { PagePayloadPreview } from "@/features/page-extract/PagePayloadPreview";
-import { useExtractPage } from "@/features/page-extract/use-extract-page";
+import { ApiKeyField } from "@/features/settings/ApiKeyField";
+import { useSettings } from "@/features/settings/use-settings";
+
+import { useAnalyzeJob } from "./use-analyze-job";
 
 function errorMessage(error: unknown): string {
-  return error instanceof AppError ? error.message : "Something went wrong while reading the page.";
+  return error instanceof AppError ? error.message : "Something went wrong while analyzing the page.";
 }
 
 export function App() {
-  const extract = useExtractPage();
+  const { settings } = useSettings();
+  const analyze = useAnalyzeJob();
+  const hasKey = Boolean(settings?.openaiApiKey);
 
   return (
     <Box as="main" p="4">
@@ -21,20 +27,44 @@ export function App() {
           </Text>
         </Box>
 
-        <Button onClick={() => extract.mutate()} loading={extract.isPending} loadingText="Reading page">
+        <ApiKeyField />
+
+        <Button
+          onClick={() => analyze.mutate()}
+          loading={analyze.isPending}
+          loadingText="Reading page and asking AI"
+          disabled={!hasKey}
+        >
           Analyze this page
         </Button>
 
-        {extract.isError && (
+        {analyze.isError && (
           <Alert.Root status="error">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>{errorMessage(extract.error)}</Alert.Title>
+              <Alert.Title>{errorMessage(analyze.error)}</Alert.Title>
             </Alert.Content>
           </Alert.Root>
         )}
 
-        {extract.data && <PagePayloadPreview payload={extract.data} />}
+        {analyze.data && (
+          <Stack gap="4">
+            <JobDraftPreview values={analyze.data.values} missing={analyze.data.missing} />
+
+            <Collapsible.Root>
+              <Collapsible.Trigger asChild>
+                <Button variant="ghost" size="sm" alignSelf="flex-start">
+                  Page data
+                </Button>
+              </Collapsible.Trigger>
+              <Collapsible.Content>
+                <Box pt="2">
+                  <PagePayloadPreview payload={analyze.data.payload} />
+                </Box>
+              </Collapsible.Content>
+            </Collapsible.Root>
+          </Stack>
+        )}
       </Stack>
     </Box>
   );

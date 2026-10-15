@@ -1,4 +1,4 @@
-export type ErrorCode = "auth" | "rate_limit" | "schema" | "network" | "missing_columns" | "page_access";
+export type ErrorCode = "auth" | "rate_limit" | "schema" | "network" | "missing_columns" | "page_access" | "unexpected";
 
 /** Base class: `message` is always safe to show to the user. */
 export class AppError extends Error {
@@ -32,6 +32,13 @@ export class SchemaError extends AppError {
 export class NetworkError extends AppError {
   constructor(message: string, options?: { cause?: unknown }) {
     super("network", message, options);
+  }
+}
+
+/** Anything we could not classify; the message stays generic and safe to show. */
+export class UnexpectedError extends AppError {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super("unexpected", message, options);
   }
 }
 
