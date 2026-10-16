@@ -109,10 +109,19 @@ describe("analyzeJob with a spreadsheet", () => {
     const { all, find, createSink, extract } = deps({ readSettings: withSheet });
     const result = await analyzeJob(all);
 
-    expect(createSink).toHaveBeenCalledWith("sheet-id");
+    expect(createSink).toHaveBeenCalledWith("sheet-id", appConfig.defaultSheetTab);
     expect(find).toHaveBeenCalledWith(CLEAN_URL);
     expect(extract).toHaveBeenCalledOnce();
     expect(result.existing).toBe(false);
+  });
+
+  it("uses the tab name saved in settings", async () => {
+    const { all, createSink } = deps({
+      readSettings: () =>
+        Promise.resolve({ openaiApiKey: "sk-test", spreadsheetId: "sheet-id", sheetTab: "Applications" }),
+    });
+    await analyzeJob(all);
+    expect(createSink).toHaveBeenCalledWith("sheet-id", "Applications");
   });
 
   it("loads the saved row and skips OpenAI when the job is already in the sheet", async () => {

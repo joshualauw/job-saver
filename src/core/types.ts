@@ -105,6 +105,11 @@ export interface Sink {
   find(jobUrl: string): Promise<SavedJob | null>;
   /** Appends a new row, or updates the existing row for the same job URL. */
   save(values: Readonly<Record<string, unknown>>, today: string): Promise<SaveResult>;
+  /**
+   * Checks the destination is reachable and has every configured column; throws a typed error
+   * naming what is wrong. `columns` is how many configured columns were found.
+   */
+  verify(): Promise<{ readonly columns: number }>;
 }
 
 /** Turns page content into typed values (OpenAI today); implementations live in features. */

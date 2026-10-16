@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Collapsible, Heading, Stack, Text } from "@chakra-ui/react";
+import { Alert, Box, Button, Collapsible, Heading, HStack, Stack, Text } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 
 import { AppError } from "@/core/errors";
@@ -8,12 +8,13 @@ import { toFormInputs } from "@/features/job-form/form-values";
 import type { FormInputs } from "@/features/job-form/form-values";
 import { useDraft } from "@/features/job-form/use-draft";
 import { PagePayloadPreview } from "@/features/page-extract/PagePayloadPreview";
-import { ApiKeyField } from "@/features/settings/ApiKeyField";
-import { SpreadsheetField } from "@/features/settings/SpreadsheetField";
+import { SettingsView } from "@/features/settings/SettingsView";
+import { isSetupComplete } from "@/features/settings/setup-status";
 import { useSettings } from "@/features/settings/use-settings";
 
 import { useAnalyzeJob } from "./use-analyze-job";
 import { useSaveJob } from "./use-save-job";
+import { useVerifyConnection } from "./use-verify-connection";
 
 /** What the form is currently showing: a fresh analysis, or a draft restored on reopen. */
 interface Session {
@@ -28,18 +29,27 @@ interface Session {
   readonly payload: PagePayload | null;
 }
 
+type View = "job" | "settings";
+
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof AppError ? error.message : fallback;
 }
 
 export function App() {
-  const { settings } = useSettings();
+  const { settings, isLoading } = useSettings();
   const analyze = useAnalyzeJob();
   const save = useSaveJob();
   const draft = useDraft();
+  const connection = useVerifyConnection();
   const [analysis, setAnalysis] = useState<Session | null>(null);
+  // Null until the user picks a view, so the first run can open Settings by itself.
+  const [chosenView, setChosenView] = useState<View | null>(null);
+
   const hasKey = Boolean(settings?.openaiApiKey);
   const hasSheet = Boolean(settings?.spreadsheetId);
+  const setupComplete = isSetupComplete(settings);
+  const firstRun = chosenView === null && !isLoading && !setupComplete;
+  const view: View = chosenView ?? (firstRun ? "settings" : "job");
 
   const restored: Session | null = draft.restored
     ? {
@@ -104,97 +114,132 @@ export function App() {
   return (
     <Box as="main" p="4">
       <Stack gap="4">
-        <Box>
-          <Heading size="md">Job Saver</Heading>
-          <Text mt="1" color="fg.muted">
-            Open a Jobstreet job posting, then analyze it.
-          </Text>
-        </Box>
+        <HStack justify="space-between" align="start">
+          <Box>
+            <Heading size="md">Job Saver</Heading>
+            {view === "job" && (
+              <Text mt="1" color="fg.muted">
+                Open a Jobstreet job posting, then analyze it.
+              </Text>
+            )}
+          </Box>
+          {!firstRun && (
+            <Button size="xs" variant="ghost" onClick={() => setChosenView(view === "settings" ? "job" : "settings")}>
+              {view === "settings" ? "Back to jobs" : "Settings"}
+            </Button>
+          )}
+        </HStack>
 
-        <ApiKeyField />
-        <SpreadsheetField />
-
-        <Button
-          onClick={runAnalysis}
-          loading={analyze.isPending}
-          loadingText="Reading page and asking AI"
-          disabled={!hasKey}
-        >
-          Analyze this page
-        </Button>
-
-        {analyze.isError && (
-          <Alert.Root status="error">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{errorMessage(analyze.error, "Something went wrong while analyzing the page.")}</Alert.Title>
-            </Alert.Content>
-          </Alert.Root>
+        {view === "settings" && (
+          <SettingsView
+            onboarding={firstRun}
+            onDone={() => setChosenView("job")}
+            connection={connection.state}
+            onTestConnection={connection.run}
+          />
         )}
 
-        {save.isError && (
-          <Alert.Root status="error">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{errorMessage(save.error, "Something went wrong while saving.")}</Alert.Title>
-            </Alert.Content>
-          </Alert.Root>
-        )}
-
-        {save.data && (
-          <Alert.Root status="success">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>
-                {save.data.action === "created"
-                  ? `Saved to your sheet (row ${save.data.row})`
-                  : `Updated row ${save.data.row} in your sheet`}
-              </Alert.Title>
-            </Alert.Content>
-          </Alert.Root>
-        )}
-
-        {session && (
+        {/* Kept mounted (just hidden) while Settings is open, so form edits are not lost. */}
+        <Box display={view === "job" ? "block" : "none"}>
           <Stack gap="4">
-            {session.existing && (
+            {!setupComplete && !isLoading && (
               <Alert.Root status="info">
                 <Alert.Indicator />
                 <Alert.Content>
-                  <Alert.Title>Already in your sheet</Alert.Title>
-                  <Alert.Description>
-                    Showing the saved row. Saving updates it instead of adding a new one.
-                  </Alert.Description>
+                  <Alert.Title>Finish setup</Alert.Title>
+                  <Alert.Description>Add your OpenAI key and Google spreadsheet in Settings.</Alert.Description>
+                </Alert.Content>
+                <Button size="xs" variant="outline" onClick={() => setChosenView("settings")}>
+                  Open Settings
+                </Button>
+              </Alert.Root>
+            )}
+
+            <Button
+              onClick={runAnalysis}
+              loading={analyze.isPending}
+              loadingText="Reading page and asking AI"
+              disabled={!hasKey}
+            >
+              Analyze this page
+            </Button>
+
+            {analyze.isError && (
+              <Alert.Root status="error">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Title>
+                    {errorMessage(analyze.error, "Something went wrong while analyzing the page.")}
+                  </Alert.Title>
                 </Alert.Content>
               </Alert.Root>
             )}
 
-            <JobForm
-              key={session.id}
-              initialInputs={session.inputs}
-              missing={session.missing}
-              onChange={handleChange}
-              onSave={saveJob}
-              onDiscard={discard}
-              saving={save.isPending}
-              saveDisabledReason={hasSheet ? null : "Add your Google spreadsheet above to save."}
-            />
+            {save.isError && (
+              <Alert.Root status="error">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Title>{errorMessage(save.error, "Something went wrong while saving.")}</Alert.Title>
+                </Alert.Content>
+              </Alert.Root>
+            )}
 
-            {session.payload && (
-              <Collapsible.Root>
-                <Collapsible.Trigger asChild>
-                  <Button variant="ghost" size="sm" alignSelf="flex-start">
-                    Page data
-                  </Button>
-                </Collapsible.Trigger>
-                <Collapsible.Content>
-                  <Box pt="2">
-                    <PagePayloadPreview payload={session.payload} />
-                  </Box>
-                </Collapsible.Content>
-              </Collapsible.Root>
+            {save.data && (
+              <Alert.Root status="success">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Title>
+                    {save.data.action === "created"
+                      ? `Saved to your sheet (row ${save.data.row})`
+                      : `Updated row ${save.data.row} in your sheet`}
+                  </Alert.Title>
+                </Alert.Content>
+              </Alert.Root>
+            )}
+
+            {session && (
+              <Stack gap="4">
+                {session.existing && (
+                  <Alert.Root status="info">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>Already in your sheet</Alert.Title>
+                      <Alert.Description>
+                        Showing the saved row. Saving updates it instead of adding a new one.
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert.Root>
+                )}
+
+                <JobForm
+                  key={session.id}
+                  initialInputs={session.inputs}
+                  missing={session.missing}
+                  onChange={handleChange}
+                  onSave={saveJob}
+                  onDiscard={discard}
+                  saving={save.isPending}
+                  saveDisabledReason={hasSheet ? null : "Add your Google spreadsheet in Settings to save."}
+                />
+
+                {session.payload && (
+                  <Collapsible.Root>
+                    <Collapsible.Trigger asChild>
+                      <Button variant="ghost" size="sm" alignSelf="flex-start">
+                        Page data
+                      </Button>
+                    </Collapsible.Trigger>
+                    <Collapsible.Content>
+                      <Box pt="2">
+                        <PagePayloadPreview payload={session.payload} />
+                      </Box>
+                    </Collapsible.Content>
+                  </Collapsible.Root>
+                )}
+              </Stack>
             )}
           </Stack>
-        )}
+        </Box>
       </Stack>
     </Box>
   );

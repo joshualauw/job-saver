@@ -28,7 +28,7 @@ export interface AnalyzeDeps {
   readonly readSettings: () => Promise<Settings>;
   readonly extractPage: () => Promise<PagePayload>;
   readonly createExtractor: (options: { apiKey: string; model: string }) => Extractor<LlmJobValues>;
-  readonly createSink: (spreadsheetId: string) => Sink;
+  readonly createSink: (spreadsheetId: string, tab: string) => Sink;
 }
 
 const defaultDeps: AnalyzeDeps = {
@@ -52,7 +52,8 @@ export async function analyzeJob(deps: AnalyzeDeps = defaultDeps): Promise<Analy
 
   // A job that is already saved keeps its real status: no AI draft, no OpenAI cost.
   if (settings.spreadsheetId && source) {
-    const saved = await deps.createSink(settings.spreadsheetId).find(source.jobUrl);
+    const sink = deps.createSink(settings.spreadsheetId, settings.sheetTab ?? appConfig.defaultSheetTab);
+    const saved = await sink.find(source.jobUrl);
     if (saved) return { payload, values: saved.values, missing: [], existing: true };
   }
 

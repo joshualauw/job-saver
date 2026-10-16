@@ -35,6 +35,11 @@ export async function sessionSet(key: string, value: unknown): Promise<void> {
   await chrome.storage.session.set({ [key]: value });
 }
 
+/** Whether this build was made with a Google OAuth client ID (set from `.env.local`). */
+export function hasOAuthClient(): boolean {
+  return Boolean(chrome.runtime.getManifest().oauth2?.client_id);
+}
+
 /** Google OAuth token for the Chrome-signed-in account. Rejects if sign-in fails or is cancelled. */
 export async function getAuthToken(interactive: boolean): Promise<string> {
   const { token } = await chrome.identity.getAuthToken({ interactive });

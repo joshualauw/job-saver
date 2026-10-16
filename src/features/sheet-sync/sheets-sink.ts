@@ -93,6 +93,12 @@ export function createSheetsSink({ tab, client }: SheetsSinkOptions): Sink {
       return locate(await readTab(), jobUrl);
     },
 
+    async verify() {
+      const { header } = await readTab();
+      // Throws MissingColumnsError, naming every absent header, if the tab is not set up.
+      return { columns: toSheetCells(fields, {}, header).length };
+    },
+
     async save(values, today): Promise<SaveResult> {
       const jobUrl = values[JOB_URL_KEY];
       if (typeof jobUrl !== "string" || jobUrl === "") {

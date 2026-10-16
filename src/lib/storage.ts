@@ -12,6 +12,8 @@ export const settingsSchema = z.object({
   openaiModel: optionalText,
   /** ID of the Google spreadsheet jobs are saved to (not a secret). */
   spreadsheetId: optionalText,
+  /** Tab holding the jobs; falls back to the config default when unset. */
+  sheetTab: optionalText,
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
@@ -30,6 +32,7 @@ function dropBlank(settings: Settings): Settings {
   if (settings.openaiApiKey) clean.openaiApiKey = settings.openaiApiKey;
   if (settings.openaiModel) clean.openaiModel = settings.openaiModel;
   if (settings.spreadsheetId) clean.spreadsheetId = settings.spreadsheetId;
+  if (settings.sheetTab) clean.sheetTab = settings.sheetTab;
   return clean;
 }
 

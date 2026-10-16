@@ -100,3 +100,14 @@ describe("spreadsheet setting", () => {
     expect(await readSettings(adapter)).toEqual({});
   });
 });
+
+describe("sheet tab setting", () => {
+  it("round-trips the tab and clears it when written blank", async () => {
+    const { adapter } = memoryAdapter();
+    await writeSettings({ sheetTab: " Applications " }, adapter);
+    expect(await readSettings(adapter)).toEqual({ sheetTab: "Applications" });
+
+    await writeSettings({ sheetTab: "" }, adapter);
+    expect(await readSettings(adapter)).toEqual({});
+  });
+});

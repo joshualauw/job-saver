@@ -209,3 +209,24 @@ describe("sheets sink: validation", () => {
     expect(post).not.toHaveBeenCalled();
   });
 });
+
+describe("sheets sink: verify", () => {
+  it("reports how many configured columns the header has", async () => {
+    const { sink, get } = fakeClient([header]);
+    await expect(sink.verify()).resolves.toEqual({ columns: fields.length });
+    expect(get).toHaveBeenCalledOnce();
+  });
+
+  it("names every missing header", async () => {
+    const short = header.filter((name) => name !== "Notes" && name !== "Skills");
+    const error = await fakeClient([short])
+      .sink.verify()
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(MissingColumnsError);
+    expect((error as MissingColumnsError).columns).toEqual(["Skills", "Notes"]);
+  });
+
+  it("treats an empty tab as missing all columns", async () => {
+    await expect(fakeClient(undefined).sink.verify()).rejects.toBeInstanceOf(MissingColumnsError);
+  });
+});

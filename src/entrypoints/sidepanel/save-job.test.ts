@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { appConfig } from "@/config/app";
 import { UnexpectedError } from "@/core/errors";
 
 import { saveJob } from "./save-job";
@@ -29,7 +30,17 @@ describe("saveJob", () => {
   it("saves through the sink with today's date and returns its result", async () => {
     const { all, save, createSink } = deps();
     await expect(saveJob(values, all)).resolves.toEqual({ action: "created", row: 4 });
-    expect(createSink).toHaveBeenCalledWith("sheet-id");
+    expect(createSink).toHaveBeenCalledWith("sheet-id", appConfig.defaultSheetTab);
     expect(save).toHaveBeenCalledWith(values, "2026-10-16");
+  });
+});
+
+describe("saveJob tab", () => {
+  it("saves into the tab chosen in settings", async () => {
+    const { all, createSink } = deps({
+      readSettings: () => Promise.resolve({ spreadsheetId: "sheet-id", sheetTab: "Applications" }),
+    });
+    await saveJob(values, all);
+    expect(createSink).toHaveBeenCalledWith("sheet-id", "Applications");
   });
 });
