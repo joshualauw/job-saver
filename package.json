@@ -1,6 +1,6 @@
 {
   "name": "job-saver",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Chrome side-panel extension that extracts job details with AI and saves them to Google Sheets.",
   "type": "module",
