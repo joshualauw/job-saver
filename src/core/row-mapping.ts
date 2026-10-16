@@ -82,9 +82,31 @@ function encodeCell(field: FieldDef, value: unknown): string | number {
   }
 }
 
+export interface SheetCell {
+  /** Zero-based column index in the header row. */
+  readonly index: number;
+  readonly value: string | number;
+}
+
 /**
- * Builds a row aligned to the sheet's header. Columns the app does not own are left blank.
+ * Only the cells the app owns, with their column index. Updating an existing row writes just
+ * these, so columns the user added themselves (and their formulas) are never touched.
  * Throws `MissingColumnsError` if a configured column is absent from the header.
+ */
+export function toSheetCells(
+  fields: readonly FieldDef[],
+  values: Readonly<Record<string, unknown>>,
+  headerRow: readonly string[],
+): SheetCell[] {
+  return resolveColumns(fields, headerRow).map(({ field, index }) => ({
+    index,
+    value: encodeCell(field, values[field.key]),
+  }));
+}
+
+/**
+ * Builds a full row aligned to the sheet's header, for appending. Columns the app does not own
+ * are left blank.
  */
 export function toSheetRow(
   fields: readonly FieldDef[],
@@ -92,8 +114,8 @@ export function toSheetRow(
   headerRow: readonly string[],
 ): (string | number)[] {
   const row: (string | number)[] = headerRow.map(() => "");
-  for (const { field, index } of resolveColumns(fields, headerRow)) {
-    row[index] = encodeCell(field, values[field.key]);
+  for (const { index, value } of toSheetCells(fields, values, headerRow)) {
+    row[index] = value;
   }
   return row;
 }

@@ -84,3 +84,19 @@ describe("draft storage", () => {
     expect(await readDraft(adapter)).toBeNull();
   });
 });
+
+describe("spreadsheet setting", () => {
+  it("round-trips the spreadsheet ID alongside other settings", async () => {
+    const { adapter } = memoryAdapter();
+    await writeSettings({ openaiApiKey: "sk-abc" }, adapter);
+    await writeSettings({ spreadsheetId: " sheet-123 " }, adapter);
+    expect(await readSettings(adapter)).toEqual({ openaiApiKey: "sk-abc", spreadsheetId: "sheet-123" });
+  });
+
+  it("clears the spreadsheet when written blank", async () => {
+    const { adapter } = memoryAdapter();
+    await writeSettings({ spreadsheetId: "sheet-123" }, adapter);
+    await writeSettings({ spreadsheetId: "" }, adapter);
+    expect(await readSettings(adapter)).toEqual({});
+  });
+});

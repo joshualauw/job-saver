@@ -53,8 +53,8 @@ product.
 4. AI extraction and a minimal API-key field: done.
 5. Editable form with "not found" flags, draft persistence, status and date logic: done (Save
    validates only; nothing is written yet).
-6. Google Sheets: sign-in, append, duplicate lookup, update: next.
-7. Settings view and first-run onboarding.
+6. Google Sheets: sign-in, append, duplicate lookup, update: done.
+7. Settings view and first-run onboarding: next.
 8. Polish: toasts, loading states, tab-change handling, dark mode.
 
 Outstanding checks on finished work:

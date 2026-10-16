@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { fields } from "@/config/fields";
 
 import { MissingColumnsError, SchemaError } from "./errors";
-import { fromSheetRow, guardFormula, toSheetRow } from "./row-mapping";
+import { fromSheetRow, guardFormula, toSheetCells, toSheetRow } from "./row-mapping";
 
 const header = fields.map((field) => field.column);
 
@@ -159,5 +159,20 @@ describe("fromSheetRow", () => {
 
   it("throws MissingColumnsError when the header lacks a configured column", () => {
     expect(() => fromSheetRow(fields, [], ["Company"])).toThrow(MissingColumnsError);
+  });
+});
+
+describe("toSheetCells", () => {
+  it("returns only the cells the app owns, with their header index", () => {
+    const withExtra = ["Comments", ...header];
+    const cells = toSheetCells(fields, values, withExtra);
+
+    expect(cells).toHaveLength(fields.length);
+    expect(cells.map((cell) => cell.index)).not.toContain(0);
+    expect(cells.find((cell) => cell.index === withExtra.indexOf("Company"))?.value).toBe("Acme");
+  });
+
+  it("throws MissingColumnsError like toSheetRow", () => {
+    expect(() => toSheetCells(fields, values, ["Company"])).toThrow(MissingColumnsError);
   });
 });

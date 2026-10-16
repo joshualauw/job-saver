@@ -87,6 +87,26 @@ export interface JobSource {
   readonly jobUrl: string;
 }
 
+/** A job row that is already in the sheet, decoded by field key. */
+export interface SavedJob {
+  /** 1-based sheet row. Informational only: it is never stored, rows are re-found by URL. */
+  readonly row: number;
+  readonly values: Readonly<Record<string, unknown>>;
+}
+
+export interface SaveResult {
+  readonly action: "created" | "updated";
+  readonly row: number;
+}
+
+/** Where jobs are saved (Google Sheets today); implementations live in features. */
+export interface Sink {
+  /** The saved row for this clean job URL, if any. */
+  find(jobUrl: string): Promise<SavedJob | null>;
+  /** Appends a new row, or updates the existing row for the same job URL. */
+  save(values: Readonly<Record<string, unknown>>, today: string): Promise<SaveResult>;
+}
+
 /** Turns page content into typed values (OpenAI today); implementations live in features. */
 export interface Extractor<T> {
   extract(payload: PagePayload): Promise<T>;

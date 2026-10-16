@@ -35,6 +35,17 @@ export async function sessionSet(key: string, value: unknown): Promise<void> {
   await chrome.storage.session.set({ [key]: value });
 }
 
+/** Google OAuth token for the Chrome-signed-in account. Rejects if sign-in fails or is cancelled. */
+export async function getAuthToken(interactive: boolean): Promise<string> {
+  const { token } = await chrome.identity.getAuthToken({ interactive });
+  if (!token) throw new Error("No Google auth token was returned");
+  return token;
+}
+
+export async function removeCachedAuthToken(token: string): Promise<void> {
+  await chrome.identity.removeCachedAuthToken({ token });
+}
+
 /** Runs a bundled script file in the tab and returns the script's return value. */
 export async function executeScriptFile(tabId: number, file: string): Promise<unknown> {
   const [injection] = await chrome.scripting.executeScript({ target: { tabId }, files: [file] });

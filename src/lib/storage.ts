@@ -10,6 +10,8 @@ const optionalText = z.string().trim().optional();
 export const settingsSchema = z.object({
   openaiApiKey: optionalText,
   openaiModel: optionalText,
+  /** ID of the Google spreadsheet jobs are saved to (not a secret). */
+  spreadsheetId: optionalText,
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
@@ -27,6 +29,7 @@ function dropBlank(settings: Settings): Settings {
   const clean: Settings = {};
   if (settings.openaiApiKey) clean.openaiApiKey = settings.openaiApiKey;
   if (settings.openaiModel) clean.openaiModel = settings.openaiModel;
+  if (settings.spreadsheetId) clean.spreadsheetId = settings.spreadsheetId;
   return clean;
 }
 
@@ -51,6 +54,8 @@ export const draftSchema = z.object({
   inputs: z.record(z.string(), z.string()),
   /** Keys of fields the AI could not find, for "not found" flags. */
   missing: z.array(z.string()),
+  /** The values were loaded from a row already in the sheet. */
+  existing: z.boolean().optional(),
 });
 
 export type StoredDraft = z.infer<typeof draftSchema>;

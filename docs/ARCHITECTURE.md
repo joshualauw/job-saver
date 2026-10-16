@@ -79,7 +79,9 @@ tracking possible. Sheet text is guarded against formula injection.
 One-time setup (by the user): Google Cloud project with the Sheets API enabled, OAuth consent
 screen in Testing mode with the user as a test user, a Chrome-extension OAuth client bound to a
 fixed extension ID (manifest `key`), and a sheet tab whose row 1 contains the column names from
-the field config.
+the field config. The OAuth client ID lives in the gitignored `.env.local` (`OAUTH_CLIENT_ID`) and
+is injected into the manifest at build time. Analyze reuses a row already in the sheet instead of
+calling the model, and updates write only the columns the app owns, so user-added columns survive.
 
 ## Security and permissions
 
