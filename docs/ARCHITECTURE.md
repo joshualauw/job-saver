@@ -81,7 +81,7 @@ screen in Testing mode with the user as a test user, a Chrome-extension OAuth cl
 fixed extension ID (manifest `key`), and a sheet tab whose row 1 contains the column names from
 the field config. The OAuth client ID lives in the gitignored `.env.local` (`OAUTH_CLIENT_ID`) and
 is injected into the manifest at build time. Analyze reuses a row already in the sheet instead of
-calling the model, and updates write only the columns the app owns, so user-added columns survive.
+calling the model unless the user asks to re-analyze it, and updates write only the columns the app owns, so user-added columns survive.
 
 ## Security and permissions
 

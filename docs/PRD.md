@@ -39,6 +39,8 @@ product.
 - **Status** moves through Saved, Applied, Interviewing, Offer, Rejected, Withdrawn, Ghosted; new
   jobs start as Saved.
 - **Re-saving a known URL** edits the existing row instead of adding a duplicate.
+- **Re-analyze** is an explicit action on a job already in the sheet: the AI runs again, but status
+  and dates are kept and a saved value is only replaced when the AI found a new one.
 - **Last updated** is blank on a new row and set only when the status changes.
 - **One salary figure** is treated as the minimum; the maximum stays empty.
 - **Location type** defaults to onsite unless the posting says remote or hybrid.

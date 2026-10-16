@@ -62,13 +62,13 @@ const withSheet = () => Promise.resolve({ openaiApiKey: "sk-test", spreadsheetId
 describe("analyzeJob", () => {
   it("fails with AuthError before touching the page when no key is saved", async () => {
     const { all, extractPage } = deps({ readSettings: () => Promise.resolve({}) });
-    await expect(analyzeJob(all)).rejects.toBeInstanceOf(AuthError);
+    await expect(analyzeJob({}, all)).rejects.toBeInstanceOf(AuthError);
     expect(extractPage).not.toHaveBeenCalled();
   });
 
   it("reads the page, asks the model, and merges code-owned fields", async () => {
     const { all, extract, createExtractor } = deps();
-    const result = await analyzeJob(all);
+    const result = await analyzeJob({}, all);
 
     expect(extract).toHaveBeenCalledWith(payload);
     expect(createExtractor).toHaveBeenCalledWith({ apiKey: "sk-test", model: appConfig.openaiModel });
@@ -85,7 +85,7 @@ describe("analyzeJob", () => {
     const { all, createExtractor } = deps({
       readSettings: () => Promise.resolve({ openaiApiKey: "sk-test", openaiModel: "my-model" }),
     });
-    await analyzeJob(all);
+    await analyzeJob({}, all);
     expect(createExtractor).toHaveBeenCalledWith({ apiKey: "sk-test", model: "my-model" });
   });
 
@@ -93,7 +93,7 @@ describe("analyzeJob", () => {
     const { all, createExtractor } = deps({
       extractPage: () => Promise.reject(new PageAccessError("no access")),
     });
-    await expect(analyzeJob(all)).rejects.toBeInstanceOf(PageAccessError);
+    await expect(analyzeJob({}, all)).rejects.toBeInstanceOf(PageAccessError);
     expect(createExtractor).not.toHaveBeenCalled();
   });
 });
@@ -101,13 +101,13 @@ describe("analyzeJob", () => {
 describe("analyzeJob with a spreadsheet", () => {
   it("skips the sheet lookup when no spreadsheet is configured", async () => {
     const { all, createSink } = deps();
-    await analyzeJob(all);
+    await analyzeJob({}, all);
     expect(createSink).not.toHaveBeenCalled();
   });
 
   it("looks up the clean job URL and still asks the model when it is not saved yet", async () => {
     const { all, find, createSink, extract } = deps({ readSettings: withSheet });
-    const result = await analyzeJob(all);
+    const result = await analyzeJob({}, all);
 
     expect(createSink).toHaveBeenCalledWith("sheet-id", appConfig.defaultSheetTab);
     expect(find).toHaveBeenCalledWith(CLEAN_URL);
@@ -120,7 +120,7 @@ describe("analyzeJob with a spreadsheet", () => {
       readSettings: () =>
         Promise.resolve({ openaiApiKey: "sk-test", spreadsheetId: "sheet-id", sheetTab: "Applications" }),
     });
-    await analyzeJob(all);
+    await analyzeJob({}, all);
     expect(createSink).toHaveBeenCalledWith("sheet-id", "Applications");
   });
 
@@ -128,7 +128,7 @@ describe("analyzeJob with a spreadsheet", () => {
     const { all, find, createExtractor } = deps({ readSettings: withSheet });
     find.mockResolvedValue(saved);
 
-    const result = await analyzeJob(all);
+    const result = await analyzeJob({}, all);
 
     expect(createExtractor).not.toHaveBeenCalled();
     expect(result.existing).toBe(true);
@@ -137,11 +137,34 @@ describe("analyzeJob with a spreadsheet", () => {
     expect(result.missing).toEqual([]);
   });
 
+  it("with refresh, asks the model but keeps the saved status and stays an update", async () => {
+    const { all, find, extract } = deps({ readSettings: withSheet });
+    find.mockResolvedValue(saved);
+
+    const result = await analyzeJob({ refresh: true }, all);
+
+    expect(extract).toHaveBeenCalledOnce();
+    expect(result.existing).toBe(true);
+    expect(result.values.status).toBe("interviewing");
+    expect(result.values.summary).toBe("Builds software.");
+    expect(result.values.jobUrl).toBe(CLEAN_URL);
+  });
+
+  it("with refresh, behaves like a fresh analysis when the job is not saved", async () => {
+    const { all, extract } = deps({ readSettings: withSheet });
+
+    const result = await analyzeJob({ refresh: true }, all);
+
+    expect(extract).toHaveBeenCalledOnce();
+    expect(result.existing).toBe(false);
+    expect(result.values.status).toBe(appConfig.defaultStatus);
+  });
+
   it("surfaces a lookup failure instead of silently calling the model", async () => {
     const { all, find, createExtractor } = deps({ readSettings: withSheet });
     find.mockRejectedValue(new NetworkError("offline"));
 
-    await expect(analyzeJob(all)).rejects.toBeInstanceOf(NetworkError);
+    await expect(analyzeJob({}, all)).rejects.toBeInstanceOf(NetworkError);
     expect(createExtractor).not.toHaveBeenCalled();
   });
 });

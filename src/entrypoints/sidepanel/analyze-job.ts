@@ -5,7 +5,7 @@ import { platforms } from "@/config/platforms";
 import { AuthError } from "@/core/errors";
 import { resolveJobSource } from "@/core/job-source";
 import type { PagePayload } from "@/core/page-payload";
-import type { Extractor, Sink } from "@/core/types";
+import type { Extractor, SavedJob, Sink } from "@/core/types";
 import { buildJobDraft } from "@/features/ai-extract/draft";
 import { createOpenAIExtractor } from "@/features/ai-extract/openai-extractor";
 import { extractActivePage } from "@/features/page-extract/extract-active-page";
@@ -38,11 +38,20 @@ const defaultDeps: AnalyzeDeps = {
   createSink,
 };
 
+export interface AnalyzeOptions {
+  /** Ask the model again even though the job is already in the sheet, keeping the saved row as the base. */
+  readonly refresh?: boolean;
+}
+
 /**
  * Composition root for "Analyze": read the page, reuse the saved row if the job is already in the
- * sheet, otherwise ask the model and merge with what code knows.
+ * sheet, otherwise ask the model and merge with what code knows. With `refresh`, a saved row is
+ * updated with what the model finds instead of being returned as is.
  */
-export async function analyzeJob(deps: AnalyzeDeps = defaultDeps): Promise<AnalyzeResult> {
+export async function analyzeJob(
+  { refresh = false }: AnalyzeOptions = {},
+  deps: AnalyzeDeps = defaultDeps,
+): Promise<AnalyzeResult> {
   const settings = await deps.readSettings();
   const apiKey = settings.openaiApiKey;
   if (!apiKey) throw new AuthError("Add your OpenAI API key first.");
@@ -50,16 +59,22 @@ export async function analyzeJob(deps: AnalyzeDeps = defaultDeps): Promise<Analy
   const payload = await deps.extractPage();
   const source = resolveJobSource(payload.url, platforms);
 
-  // A job that is already saved keeps its real status: no AI draft, no OpenAI cost.
+  let saved: SavedJob | null = null;
   if (settings.spreadsheetId && source) {
     const sink = deps.createSink(settings.spreadsheetId, settings.sheetTab ?? appConfig.defaultSheetTab);
-    const saved = await sink.find(source.jobUrl);
-    if (saved) return { payload, values: saved.values, missing: [], existing: true };
+    saved = await sink.find(source.jobUrl);
+    // A job that is already saved keeps its real status: no AI draft, no OpenAI cost.
+    if (saved && !refresh) return { payload, values: saved.values, missing: [], existing: true };
   }
 
   const extractor = deps.createExtractor({ apiKey, model: settings.openaiModel ?? appConfig.openaiModel });
   const llm = await extractor.extract(payload);
 
-  const { values, missing } = buildJobDraft({ source, llm, status: appConfig.defaultStatus });
-  return { payload, values, missing, existing: false };
+  const { values, missing } = buildJobDraft({
+    source,
+    llm,
+    status: appConfig.defaultStatus,
+    ...(saved && { saved: saved.values }),
+  });
+  return { payload, values, missing, existing: saved !== null };
 }

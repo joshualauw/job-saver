@@ -84,22 +84,25 @@ export function App() {
     [persist, sessionUrl, sessionMissing, sessionExisting],
   );
 
-  const runAnalysis = () => {
+  const runAnalysis = (refresh: boolean) => {
     save.reset();
-    analyze.mutate(undefined, {
-      onSuccess: (result) => {
-        const next: Session = {
-          id: Date.now(),
-          url: result.payload.url,
-          inputs: toFormInputs(result.values),
-          missing: result.missing,
-          existing: result.existing,
-          payload: result.payload,
-        };
-        draft.saveNow({ url: next.url, inputs: next.inputs, missing: [...next.missing], existing: next.existing });
-        setAnalysis(next);
+    analyze.mutate(
+      { refresh },
+      {
+        onSuccess: (result) => {
+          const next: Session = {
+            id: Date.now(),
+            url: result.payload.url,
+            inputs: toFormInputs(result.values),
+            missing: result.missing,
+            existing: result.existing,
+            payload: result.payload,
+          };
+          draft.saveNow({ url: next.url, inputs: next.inputs, missing: [...next.missing], existing: next.existing });
+          setAnalysis(next);
+        },
       },
-    });
+    );
   };
 
   const discard = () => {
@@ -171,7 +174,7 @@ export function App() {
             )}
 
             <Button
-              onClick={runAnalysis}
+              onClick={() => runAnalysis(false)}
               loading={analyze.isPending}
               loadingText="Reading page and asking AI"
               disabled={!hasKey}
@@ -223,6 +226,19 @@ export function App() {
                       <Alert.Description>
                         Showing the saved row. Saving updates it instead of adding a new one.
                       </Alert.Description>
+                      {!isStale && hasKey && (
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          alignSelf="flex-start"
+                          mt="2"
+                          onClick={() => runAnalysis(true)}
+                          loading={analyze.isPending}
+                          loadingText="Asking AI"
+                        >
+                          Re-analyze with AI
+                        </Button>
+                      )}
                     </Alert.Content>
                   </Alert.Root>
                 )}

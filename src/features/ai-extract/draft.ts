@@ -17,6 +17,12 @@ export interface BuildDraftInput {
   readonly llm: LlmJobValues;
   /** Status for a new row (an option value of the `status` field). */
   readonly status: JobValues["status"];
+  /**
+   * Values of the row already in the sheet, when refreshing it. They are the base: the model only
+   * replaces AI-sourced fields it actually found a value for, so nothing is blanked and the
+   * user's own fields (status, dates) are kept.
+   */
+  readonly saved?: Readonly<Record<string, unknown>>;
 }
 
 export interface BuildDraftResult {
@@ -29,20 +35,29 @@ function isBlank(value: unknown): boolean {
   return value === null || value === undefined || (typeof value === "string" && value.trim() === "");
 }
 
+const AI_KEYS: ReadonlySet<string> = new Set(fields.filter((field) => field.source === "ai").map((field) => field.key));
+
 /**
  * Merges what code knows (platform, clean URL, default status) with what the model returned.
  * Code-owned fields always win, and the model never sets user-owned fields.
  */
-export function buildJobDraft({ source, llm, status }: BuildDraftInput): BuildDraftResult {
-  const merged: Record<string, unknown> = {
-    ...llm,
-    skills: normalizeList(llm.skills),
-    platform: source?.platform ?? null,
-    jobUrl: source?.jobUrl ?? null,
-    status,
-    appliedAt: null,
-    lastUpdatedAt: null,
-  };
+export function buildJobDraft({ source, llm, status, saved }: BuildDraftInput): BuildDraftResult {
+  const merged: Record<string, unknown> = { ...saved };
+
+  for (const [key, value] of Object.entries({ ...llm, skills: normalizeList(llm.skills) })) {
+    if (!AI_KEYS.has(key)) continue;
+    const empty = isBlank(value) || (Array.isArray(value) && value.length === 0);
+    if (!saved || !empty) merged[key] = value;
+  }
+
+  merged["platform"] = source?.platform ?? null;
+  merged["jobUrl"] = source?.jobUrl ?? null;
+  if (saved) {
+    if (isBlank(merged["status"])) merged["status"] = status;
+    if (!Array.isArray(merged["skills"])) merged["skills"] = [];
+  } else {
+    Object.assign(merged, { status, appliedAt: null, lastUpdatedAt: null });
+  }
 
   const missing: JobFieldKey[] = [];
   for (const field of fields) {
