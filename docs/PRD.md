@@ -54,10 +54,12 @@ product.
 5. Editable form with "not found" flags, draft persistence, status and date logic: done.
 6. Google Sheets: sign-in, append, duplicate lookup, update: done.
 7. Settings view and first-run onboarding: done.
-8. Polish: toasts, loading states, tab-change handling, dark mode: next.
+8. Polish: toasts, loading states, tab-change handling, dark mode: done.
 
 Outstanding checks on finished work:
 
+- Try the polish in Chrome: success toasts, the "different page" notice after switching tabs, and
+  every screen in dark mode (dark mode follows the system setting and has not been seen yet).
 - Run extraction against real postings with a real API key and tune the prompt if values are off.
 - Confirm in Chrome that Jobstreet pages are readable in a second tab without re-clicking the icon.
 

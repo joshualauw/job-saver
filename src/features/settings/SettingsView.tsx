@@ -1,20 +1,21 @@
 import { Alert, Button, Field, Heading, HStack, Input, Stack, Text } from "@chakra-ui/react";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { appConfig } from "@/config/app";
 import { hasOAuthClient } from "@/lib/chrome";
 import type { Settings } from "@/lib/storage";
+import { toaster } from "@/theme/toast";
 
 import { isSetupComplete, setupSteps } from "./setup-status";
 import { settingsResolver, validateSettings } from "./validate-settings";
 import type { SettingsInputs } from "./validate-settings";
 import { useSettings } from "./use-settings";
 
-/** Result of the last "Test connection", already turned into text by the caller. */
+/** State of "Test connection": the caller reports success itself, so only a failure is shown here. */
 export interface ConnectionState {
   readonly isPending: boolean;
-  readonly result: { readonly kind: "success" | "error"; readonly text: string } | null;
+  /** User-safe text for the last failed test. */
+  readonly error: string | null;
 }
 
 interface Props {
@@ -38,7 +39,6 @@ function toInputs(settings: Settings | undefined): SettingsInputs {
 export function SettingsView({ onboarding, onDone, connection, onTestConnection }: Props) {
   const { settings, save } = useSettings();
   const form = useForm<SettingsInputs>({ resolver: settingsResolver, defaultValues: toInputs(settings) });
-  const [saved, setSaved] = useState(false);
 
   const { errors, isDirty } = form.formState;
   const hasKey = Boolean(settings?.openaiApiKey);
@@ -49,8 +49,8 @@ export function SettingsView({ onboarding, onDone, connection, onTestConnection 
     save.mutate(result.patch, {
       onSuccess: (next) => {
         form.reset(toInputs(next));
-        setSaved(true);
         if (onboarding && isSetupComplete(next)) onDone();
+        else toaster.create({ type: "success", title: "Settings saved" });
       },
     });
   });
@@ -130,14 +130,6 @@ export function SettingsView({ onboarding, onDone, connection, onTestConnection 
               </Alert.Content>
             </Alert.Root>
           )}
-          {saved && !isDirty && !onboarding && (
-            <Alert.Root status="success">
-              <Alert.Indicator />
-              <Alert.Content>
-                <Alert.Title>Settings saved</Alert.Title>
-              </Alert.Content>
-            </Alert.Root>
-          )}
 
           <HStack>
             <Button type="submit" flex="1" loading={save.isPending} disabled={!isDirty}>
@@ -167,11 +159,11 @@ export function SettingsView({ onboarding, onDone, connection, onTestConnection 
             Save your changes to test them.
           </Text>
         )}
-        {connection.result && (
-          <Alert.Root status={connection.result.kind}>
+        {connection.error && (
+          <Alert.Root status="error">
             <Alert.Indicator />
             <Alert.Content>
-              <Alert.Title>{connection.result.text}</Alert.Title>
+              <Alert.Title>{connection.error}</Alert.Title>
             </Alert.Content>
           </Alert.Root>
         )}

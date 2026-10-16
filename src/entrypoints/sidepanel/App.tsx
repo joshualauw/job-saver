@@ -1,7 +1,9 @@
-import { Alert, Box, Button, Collapsible, Heading, HStack, Stack, Text } from "@chakra-ui/react";
+import { Alert, Box, Button, Collapsible, Heading, HStack, Skeleton, Stack, Text } from "@chakra-ui/react";
 import { useCallback, useState } from "react";
 
+import { platforms } from "@/config/platforms";
 import { AppError } from "@/core/errors";
+import { isSameJobPage } from "@/core/page-match";
 import type { PagePayload } from "@/core/page-payload";
 import { JobForm } from "@/features/job-form/JobForm";
 import { toFormInputs } from "@/features/job-form/form-values";
@@ -12,6 +14,9 @@ import { SettingsView } from "@/features/settings/SettingsView";
 import { isSetupComplete } from "@/features/settings/setup-status";
 import { useSettings } from "@/features/settings/use-settings";
 
+import { toaster } from "@/theme/toast";
+
+import { useActiveTabUrl } from "./use-active-tab-url";
 import { useAnalyzeJob } from "./use-analyze-job";
 import { useSaveJob } from "./use-save-job";
 import { useVerifyConnection } from "./use-verify-connection";
@@ -41,6 +46,7 @@ export function App() {
   const save = useSaveJob();
   const draft = useDraft();
   const connection = useVerifyConnection();
+  const activeUrl = useActiveTabUrl();
   const [analysis, setAnalysis] = useState<Session | null>(null);
   // Null until the user picks a view, so the first run can open Settings by itself.
   const [chosenView, setChosenView] = useState<View | null>(null);
@@ -62,6 +68,8 @@ export function App() {
       }
     : null;
   const session = analysis ?? restored;
+  // Unknown until the first tab answer arrives, so no notice flashes on open.
+  const isStale = session !== null && activeUrl !== undefined && !isSameJobPage(session.url, activeUrl, platforms);
 
   const { persist } = draft;
   const sessionUrl = session?.url;
@@ -104,9 +112,16 @@ export function App() {
   const saveJob = (values: Parameters<typeof save.mutate>[0]) => {
     save.mutate(values, {
       // Done: clear the form so the next Analyze starts fresh.
-      onSuccess: () => {
+      onSuccess: (result) => {
         draft.discard();
         setAnalysis(null);
+        toaster.create({
+          type: "success",
+          title:
+            result.action === "created"
+              ? `Saved to your sheet (row ${result.row})`
+              : `Updated row ${result.row} in your sheet`,
+        });
       },
     });
   };
@@ -184,21 +199,22 @@ export function App() {
               </Alert.Root>
             )}
 
-            {save.data && (
-              <Alert.Root status="success">
-                <Alert.Indicator />
-                <Alert.Content>
-                  <Alert.Title>
-                    {save.data.action === "created"
-                      ? `Saved to your sheet (row ${save.data.row})`
-                      : `Updated row ${save.data.row} in your sheet`}
-                  </Alert.Title>
-                </Alert.Content>
-              </Alert.Root>
-            )}
+            {draft.isLoading && <Skeleton height="40" />}
 
             {session && (
               <Stack gap="4">
+                {isStale && (
+                  <Alert.Root status="warning">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>This form is for a different page</Alert.Title>
+                      <Alert.Description>
+                        The tab you are on is not the job below. Analyze this page to replace it, or keep editing.
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert.Root>
+                )}
+
                 {session.existing && (
                   <Alert.Root status="info">
                     <Alert.Indicator />

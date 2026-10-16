@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 
 import { syncColorModeWithSystem } from "@/theme/color-mode";
 import { system } from "@/theme/system";
+import { Toaster } from "@/theme/Toaster";
 
 import { App } from "./App";
 
@@ -22,6 +23,7 @@ createRoot(container).render(
     <ChakraProvider value={system}>
       <QueryClientProvider client={queryClient}>
         <App />
+        <Toaster />
       </QueryClientProvider>
     </ChakraProvider>
   </StrictMode>,

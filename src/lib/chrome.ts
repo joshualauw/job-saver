@@ -16,6 +16,30 @@ export async function getActiveTab(): Promise<ActiveTab | null> {
   return { id: tab.id, url: tab.url ?? null };
 }
 
+/**
+ * Calls `onChange` with the active tab whenever the user switches tab or window, or the active
+ * tab navigates (including in-page navigation). Returns the unsubscribe function.
+ */
+export function watchActiveTab(onChange: (tab: ActiveTab | null) => void): () => void {
+  const notify = () => {
+    void getActiveTab().then(onChange);
+  };
+  const onUpdated = (_tabId: number, info: { url?: string; status?: string }) => {
+    if (info.url !== undefined || info.status === "complete") notify();
+  };
+
+  chrome.tabs.onActivated.addListener(notify);
+  chrome.tabs.onUpdated.addListener(onUpdated);
+  chrome.windows.onFocusChanged.addListener(notify);
+  notify();
+
+  return () => {
+    chrome.tabs.onActivated.removeListener(notify);
+    chrome.tabs.onUpdated.removeListener(onUpdated);
+    chrome.windows.onFocusChanged.removeListener(notify);
+  };
+}
+
 export async function storageGet(key: string): Promise<unknown> {
   const result = await chrome.storage.local.get(key);
   return result[key];
