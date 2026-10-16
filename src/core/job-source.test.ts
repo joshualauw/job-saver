@@ -2,7 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import { platforms } from "@/config/platforms";
 
-import { resolveJobSource } from "./job-source";
+import { findPlatform, resolveJobSource } from "./job-source";
+
+describe("findPlatform", () => {
+  it("finds the dedicated platform for its hosts", () => {
+    expect(findPlatform("https://id.jobstreet.com/id/job/1", platforms)?.name).toBe("Jobstreet");
+  });
+
+  it("is null for other sites and non-web URLs", () => {
+    expect(findPlatform("https://www.linkedin.com/jobs/view/1", platforms)).toBeNull();
+    expect(findPlatform("chrome://extensions", platforms)).toBeNull();
+  });
+});
 
 // Synthetic edge cases. The real `/id/job/<id>` shape is verified against saved pages in
 // tests/jobstreet-extraction.test.ts; the `?jobId=` search-page case is still unverified.
