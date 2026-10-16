@@ -40,6 +40,14 @@ export function watchActiveTab(onChange: (tab: ActiveTab | null) => void): () =>
   };
 }
 
+/**
+ * Asks Chrome for standing access to a site. Must be called straight from a click handler, with
+ * nothing awaited first, or Chrome refuses to show the prompt. Resolves `false` if declined.
+ */
+export function requestSiteAccess(pattern: string): Promise<boolean> {
+  return chrome.permissions.request({ origins: [pattern] });
+}
+
 export async function storageGet(key: string): Promise<unknown> {
   const result = await chrome.storage.local.get(key);
   return result[key];

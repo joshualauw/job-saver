@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { parseHttpUrl, stripTrackingParams } from "./url";
+import { parseHttpUrl, sitePattern, stripTrackingParams } from "./url";
+
+describe("sitePattern", () => {
+  it("covers the whole origin, ignoring path, query and port-less defaults", () => {
+    expect(sitePattern("https://www.linkedin.com/jobs/view/4474155201/?trk=x")).toBe("https://www.linkedin.com/*");
+    expect(sitePattern("http://localhost:3000/a")).toBe("http://localhost:3000/*");
+  });
+
+  it("is null for non-web URLs", () => {
+    expect(sitePattern("chrome://extensions")).toBeNull();
+    expect(sitePattern("garbage")).toBeNull();
+  });
+});
 
 describe("parseHttpUrl", () => {
   it("accepts http and https", () => {

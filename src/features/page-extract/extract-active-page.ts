@@ -21,10 +21,7 @@ export async function extractActivePage(): Promise<PagePayload> {
   try {
     result = await executeScriptFile(tab.id, EXTRACT_SCRIPT);
   } catch (cause) {
-    throw new PageAccessError(
-      "Job Saver can't read this tab. Click the Job Saver toolbar icon on this tab to allow access, then try again.",
-      { cause },
-    );
+    throw new PageAccessError("Job Saver doesn't have access to this site yet.", { cause });
   }
 
   const parsed = pagePayloadSchema.safeParse(result);

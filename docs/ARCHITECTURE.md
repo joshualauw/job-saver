@@ -88,8 +88,10 @@ calling the model unless the user asks to re-analyze it, and updates write only 
 - Page content and the API key go only to OpenAI and Google.
 - Page text is untrusted: it is fenced in the user message and never enters the system prompt.
 - Permissions stay minimal. Supported platforms get static host access because the panel outlives
-  tab switches while `activeTab` does not; other sites work only after the user clicks the toolbar
-  icon on that tab and otherwise fail with a clear error.
+  tab switches while `activeTab` does not. Any other site is allowed one at a time: when Analyze
+  cannot read a tab, the panel offers an "Allow on this site" button that asks Chrome for that
+  site only (optional host permissions). The `tabs` permission lets the panel see the URL of a
+  site it cannot read yet, so it knows which site to ask for.
 
 ## Testing approach
 

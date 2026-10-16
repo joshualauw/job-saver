@@ -26,10 +26,13 @@ export default defineConfig({
       description: "Extract job details from the current page with AI and save them to Google Sheets.",
       key: EXTENSION_KEY,
       // Permissions are added as the features that need them land (see docs/ARCHITECTURE.md).
-      // The panel outlives tab switches but `activeTab` does not, so supported platforms get
-      // static host access; `activeTab` covers any other page the user opens the icon on.
-      permissions: ["storage", "scripting", "activeTab", "identity"],
+      // The panel outlives tab switches but `activeTab` does not (and opening the panel from the
+      // icon does not reliably grant it), so supported platforms get static host access and any
+      // other site is allowed one at a time from the panel (optional host permissions). `tabs`
+      // lets the panel see the active tab's URL on a site it cannot read yet, to ask for that site.
+      permissions: ["storage", "scripting", "activeTab", "identity", "tabs"],
       host_permissions: [...platformMatchPatterns, "https://api.openai.com/*", "https://sheets.googleapis.com/*"],
+      optional_host_permissions: ["https://*/*", "http://*/*"],
       ...(clientId ? { oauth2: { client_id: clientId, scopes: [SHEETS_SCOPE] } } : {}),
       action: { default_title: "Open Job Saver" },
     };

@@ -29,6 +29,12 @@ export function parseHttpUrl(raw: string): URL | null {
   }
 }
 
+/** Chrome match pattern covering a whole site (`https://www.example.com/*`); `null` for a non-web URL. */
+export function sitePattern(raw: string): string | null {
+  const url = parseHttpUrl(raw);
+  return url ? `${url.origin}/*` : null;
+}
+
 /**
  * Generic cleanup: drops the fragment and well-known tracking params, sorts what remains so
  * equal URLs compare equal, and removes a trailing slash from non-root paths.

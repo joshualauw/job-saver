@@ -2,7 +2,7 @@ import { Alert, Box, Button, Collapsible, Heading, HStack, Skeleton, Stack, Text
 import { useCallback, useState } from "react";
 
 import { platforms } from "@/config/platforms";
-import { AppError } from "@/core/errors";
+import { AppError, PageAccessError } from "@/core/errors";
 import { isSameJobPage } from "@/core/page-match";
 import type { PagePayload } from "@/core/page-payload";
 import { JobForm } from "@/features/job-form/JobForm";
@@ -10,6 +10,8 @@ import { toFormInputs } from "@/features/job-form/form-values";
 import type { FormInputs } from "@/features/job-form/form-values";
 import { useDraft } from "@/features/job-form/use-draft";
 import { PagePayloadPreview } from "@/features/page-extract/PagePayloadPreview";
+import { requestSiteAccess } from "@/lib/chrome";
+import { parseHttpUrl, sitePattern } from "@/lib/url";
 import { SettingsView } from "@/features/settings/SettingsView";
 import { isSetupComplete } from "@/features/settings/setup-status";
 import { useSettings } from "@/features/settings/use-settings";
@@ -105,6 +107,18 @@ export function App() {
     );
   };
 
+  // The tab's site, when Analyze failed only because the extension may not read it yet.
+  const accessPattern = analyze.error instanceof PageAccessError && activeUrl ? sitePattern(activeUrl) : null;
+  const accessHost = activeUrl ? parseHttpUrl(activeUrl)?.hostname : undefined;
+
+  const allowSite = () => {
+    if (!accessPattern) return;
+    // Chrome only shows the prompt for a call made directly from the click, so nothing is awaited first.
+    void requestSiteAccess(accessPattern).then((granted) => {
+      if (granted) runAnalysis(false);
+    });
+  };
+
   const discard = () => {
     draft.discard();
     setAnalysis(null);
@@ -137,7 +151,7 @@ export function App() {
             <Heading size="md">Job Saver</Heading>
             {view === "job" && (
               <Text mt="1" color="fg.muted">
-                Open a Jobstreet job posting, then analyze it.
+                Open a job posting, then analyze it.
               </Text>
             )}
           </Box>
@@ -189,6 +203,11 @@ export function App() {
                   <Alert.Title>
                     {errorMessage(analyze.error, "Something went wrong while analyzing the page.")}
                   </Alert.Title>
+                  {accessPattern && (
+                    <Button size="xs" variant="outline" alignSelf="flex-start" mt="2" onClick={allowSite}>
+                      Allow Job Saver on {accessHost}
+                    </Button>
+                  )}
                 </Alert.Content>
               </Alert.Root>
             )}
