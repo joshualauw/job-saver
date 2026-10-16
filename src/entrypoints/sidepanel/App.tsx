@@ -18,10 +18,12 @@ import { useSettings } from "@/features/settings/use-settings";
 
 import { toaster } from "@/theme/toast";
 
+import { analyzeLabel } from "./analyze-label";
 import { SiteBadge } from "./SiteBadge";
 import { useActiveTabUrl } from "./use-active-tab-url";
 import { useAnalyzeJob } from "./use-analyze-job";
 import { useSaveJob } from "./use-save-job";
+import { useSelectionLength } from "./use-selection-length";
 import { useVerifyConnection } from "./use-verify-connection";
 
 /** What the form is currently showing: a fresh analysis, or a draft restored on reopen. */
@@ -59,6 +61,7 @@ export function App() {
   const setupComplete = isSetupComplete(settings);
   const firstRun = chosenView === null && !isLoading && !setupComplete;
   const view: View = chosenView ?? (firstRun ? "settings" : "job");
+  const selectionLength = useSelectionLength(view === "job" && !analyze.isPending);
 
   const restored: Session | null = draft.restored
     ? {
@@ -196,7 +199,7 @@ export function App() {
               loadingText="Reading page and asking AI"
               disabled={!hasKey}
             >
-              Analyze this page
+              {analyzeLabel(selectionLength)}
             </Button>
 
             {analyze.isError && (

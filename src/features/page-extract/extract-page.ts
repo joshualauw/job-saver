@@ -4,10 +4,8 @@ import { parseHttpUrl } from "@/lib/url";
 
 import { extractText, normalizeText } from "./dom-text";
 import { readJobPostings } from "./json-ld";
+import { MIN_SELECTION_CHARS } from "./selection";
 import { truncateText } from "./truncate";
-
-/** Selections shorter than this are treated as accidental clicks, not a deliberate choice. */
-const MIN_SELECTION_CHARS = 40;
 
 export interface BuildPayloadOptions {
   readonly platforms: readonly PlatformDef[];
