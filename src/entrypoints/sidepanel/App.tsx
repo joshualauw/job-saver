@@ -34,6 +34,8 @@ interface Session {
   readonly missing: readonly string[];
   /** The values came from a row already in the sheet. */
   readonly existing: boolean;
+  /** Why the assessment is missing after an attempt; only present for an analysis made in this panel session. */
+  readonly assessmentError: string | null;
   /** Only present for an analysis made in this panel session. */
   readonly payload: PagePayload | null;
 }
@@ -70,6 +72,7 @@ export function App() {
         missing: draft.restored.missing,
         existing: draft.restored.existing ?? false,
         payload: null,
+        assessmentError: null,
       }
     : null;
   const session = analysis ?? restored;
@@ -102,6 +105,7 @@ export function App() {
             missing: result.missing,
             existing: result.existing,
             payload: result.payload,
+            assessmentError: result.assessmentError,
           };
           draft.saveNow({ url: next.url, inputs: next.inputs, missing: [...next.missing], existing: next.existing });
           setAnalysis(next);
@@ -261,6 +265,18 @@ export function App() {
                           Re-analyze with AI
                         </Button>
                       )}
+                    </Alert.Content>
+                  </Alert.Root>
+                )}
+
+                {session.assessmentError && (
+                  <Alert.Root status="warning">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Title>Couldn't judge this job</Alert.Title>
+                      <Alert.Description>
+                        {session.assessmentError} {session.existing ? "Use Re-analyze" : "Analyze again"} to retry.
+                      </Alert.Description>
                     </Alert.Content>
                   </Alert.Root>
                 )}
