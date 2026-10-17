@@ -66,20 +66,9 @@ yourself, so nothing is shared with anyone.
 
 ### 3. Create the spreadsheet
 
-The easy way is the ready-made template: [`templates/job-tracker-template.xlsx`](templates/job-tracker-template.xlsx).
-It has the `Jobs` tab with all the headers, dropdowns for the status, contract type, location type,
-salary period and verdict columns, and formatted empty rows.
-
-1. In Google Sheets, create a new spreadsheet and choose **File → Import → Upload**, then pick the
-   template.
-2. Choose **Replace spreadsheet** and import.
-3. Check that the tab is named `Jobs`, or set the name you use in Settings.
-
-New jobs are written into the first empty formatted row, so the dropdowns and formats are kept.
-Past the formatted rows, Google adds new rows for you.
-
-Prefer to build it by hand? Create a tab named `Jobs` and put these headers in row 1. Order does not
-matter, and you can add your own extra columns.
+In Google Sheets, create a new spreadsheet with a tab named `Jobs` (or set the name you use in
+Settings) and put these headers in row 1. Order does not matter, and you can add your own extra
+columns.
 
 ```
 Company	Job Title	Address	Contract Type	Location Type	Platform	Job URL	Status	Applied At	Last Updated At	Min YOE	Skills	Salary Period	Salary Currency	Min Salary	Max Salary	Summary	Notes	CV Fit	Preference Fit	Verdict
@@ -91,6 +80,9 @@ truth for fields. All headers are required, even if you never use the fit assess
 
 Tip: pasting the line above into cell A1 splits it across columns, since the headers are tab
 separated. If it lands in one cell, type them in by hand.
+
+New jobs are written into the first empty row that has your formatting, so any dropdowns or formats
+you set up on the columns are kept. Past the formatted rows, Google adds new rows for you.
 
 ### 4. Build and load the extension
 

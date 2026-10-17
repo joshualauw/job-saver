@@ -80,8 +80,7 @@ flowchart TD
 | `src/features/settings`     | API key, sheet, CV and preferences; first-run setup.                                                         |
 | `src/lib`                   | Thin wrappers around the browser, storage and OpenAI, plus small utilities.                                  |
 | `src/theme`                 | Chakra configuration, dark mode and toasts.                                                                  |
-| `tests`                     | Fixtures (saved pages), helpers, and checks that keep the README and sheet template in sync.                 |
-| `templates`                 | The blank Google Sheet template.                                                                             |
+| `tests`                     | Fixtures (saved pages), helpers, and a check that keeps the README's sheet headers in sync.                  |
 
 ## Security and privacy
 
