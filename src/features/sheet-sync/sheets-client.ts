@@ -91,7 +91,14 @@ export function createSheetsClient({
 
     if (!response.ok) throw await toError(response, tab);
 
-    const parsed = schema.safeParse(await response.json());
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch (cause) {
+      throw new SchemaError("Google Sheets returned data in an unexpected format.", { cause });
+    }
+
+    const parsed = schema.safeParse(body);
     if (!parsed.success) {
       throw new SchemaError("Google Sheets returned data in an unexpected format.", { cause: parsed.error });
     }

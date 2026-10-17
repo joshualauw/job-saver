@@ -56,6 +56,12 @@ describe("createSheetsClient", () => {
     expect((init.headers as Record<string, string>)["Content-Type"]).toBe("application/json");
   });
 
+  it("reports a successful response that is not JSON as a SchemaError", async () => {
+    const { client } = setup([new Response("<html>sign in</html>", { status: 200 })]);
+
+    await expect(client.get("values/x", okSchema)).rejects.toBeInstanceOf(SchemaError);
+  });
+
   it("drops a rejected token and retries once with a fresh one", async () => {
     const { client, auth, fetchMock } = setup([json(401, {}), json(200, { ok: true })]);
 
