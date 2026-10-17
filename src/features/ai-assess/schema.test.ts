@@ -14,18 +14,28 @@ describe("verdictValues", () => {
 });
 
 describe("assessmentAnswerSchema", () => {
-  const valid = { cvFit: "Good match.", preferences: [{ number: 1, answer: "yes" }], verdict: "high" };
+  const valid = {
+    cvFit: [{ answer: "yes", text: "Matches Node.js" }],
+    preferences: [{ number: 1, answer: "yes" }],
+    verdict: "high",
+  };
 
-  it("accepts a complete answer, with a null CV fit", () => {
+  it("accepts a complete answer, with an empty CV fit list", () => {
     expect(assessmentAnswerSchema.safeParse(valid).success).toBe(true);
-    expect(assessmentAnswerSchema.safeParse({ ...valid, cvFit: null }).success).toBe(true);
+    expect(assessmentAnswerSchema.safeParse({ ...valid, cvFit: [] }).success).toBe(true);
   });
 
-  it("rejects an unknown verdict or preference answer", () => {
+  it("rejects a CV fit that is not a list", () => {
+    expect(assessmentAnswerSchema.safeParse({ ...valid, cvFit: "Good match." }).success).toBe(false);
+    expect(assessmentAnswerSchema.safeParse({ ...valid, cvFit: null }).success).toBe(false);
+  });
+
+  it("rejects an unknown verdict, and any answer other than yes or no", () => {
     expect(assessmentAnswerSchema.safeParse({ ...valid, verdict: "great" }).success).toBe(false);
-    expect(assessmentAnswerSchema.safeParse({ ...valid, preferences: [{ number: 1, answer: "maybe" }] }).success).toBe(
-      false,
-    );
+    for (const answer of ["maybe", "not_stated", "unclear"]) {
+      expect(assessmentAnswerSchema.safeParse({ ...valid, preferences: [{ number: 1, answer }] }).success).toBe(false);
+      expect(assessmentAnswerSchema.safeParse({ ...valid, cvFit: [{ answer, text: "x" }] }).success).toBe(false);
+    }
   });
 
   it("is a strict-mode JSON schema with every key required and no extras", () => {

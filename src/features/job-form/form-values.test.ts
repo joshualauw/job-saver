@@ -21,7 +21,7 @@ const draft = {
   summary: "Builds software.",
   notes: null,
   cvFit: "Good match.",
-  preferenceFit: "Yes: Remote work\nNot stated: Salary above 10M",
+  preferenceFit: "Yes: Remote work\nNo: Salary above 10M",
   verdict: "high",
 };
 
@@ -52,7 +52,7 @@ describe("assessment fields in the form", () => {
   it("still travel through the form state and out to Save", () => {
     const values = fromFormInputs(toFormInputs(draft));
     expect(values["verdict"]).toBe("high");
-    expect(values["preferenceFit"]).toBe("Yes: Remote work\nNot stated: Salary above 10M");
+    expect(values["preferenceFit"]).toBe("Yes: Remote work\nNo: Salary above 10M");
   });
 });
 

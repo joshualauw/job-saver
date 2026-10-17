@@ -26,10 +26,10 @@ const CV = "Jane Doe, secret-cv-marker. Five years of Node.js.";
 const input: AssessmentInput = { payload, cv: CV, preferences: ["Remote work", "Salary above 10M"] };
 
 const answer: AssessmentAnswer = {
-  cvFit: "Matches the Node.js requirement.",
+  cvFit: [{ answer: "yes", text: "Matches the Node.js requirement." }],
   preferences: [
     { number: 1, answer: "yes" },
-    { number: 2, answer: "not_stated" },
+    { number: 2, answer: "no" },
   ],
   verdict: "high",
 };
@@ -53,8 +53,8 @@ describe("createOpenAIAssessor", () => {
   it("returns the answer as field values", async () => {
     const { client } = fakeClient({ output: [], output_parsed: answer });
     await expect(assessor(client).assess(input)).resolves.toEqual({
-      cvFit: "Matches the Node.js requirement.",
-      preferenceFit: "Yes: Remote work\nNot stated: Salary above 10M",
+      cvFit: "Yes: Matches the Node.js requirement.",
+      preferenceFit: "Yes: Remote work\nNo: Salary above 10M",
       verdict: "high",
     });
   });

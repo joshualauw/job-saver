@@ -13,16 +13,20 @@ if (!verdictField) throw new Error(`Field "${VERDICT_KEY}" is missing from the f
 /** The levels the verdict can take: the verdict field's options, never repeated here. */
 export const verdictValues: readonly string[] = enumValues(verdictField);
 
-export const PREFERENCE_ANSWERS = ["yes", "no", "not_stated"] as const;
-export type PreferenceAnswer = (typeof PREFERENCE_ANSWERS)[number];
+/** Two answers only: something the posting or CV does not show counts as "no", never as "unknown". */
+export const FIT_ANSWERS = ["yes", "no"] as const;
+export type FitAnswer = (typeof FIT_ANSWERS)[number];
+
+const fitAnswer = z.enum(FIT_ANSWERS);
 
 /**
- * What the model returns (strict structured output). Preferences are answered by their number in
- * the numbered list it was given, so their wording is never reproduced and cannot drift.
+ * What the model returns (strict structured output). The CV fit is a list of marked bullets (empty
+ * when there is no CV). Preferences are answered by their number in the numbered list it was
+ * given, so their wording is never reproduced and cannot drift.
  */
 export const assessmentAnswerSchema = z.object({
-  [CV_FIT_KEY]: z.string().nullable(),
-  preferences: z.array(z.object({ number: z.number().int(), answer: z.enum(PREFERENCE_ANSWERS) })),
+  [CV_FIT_KEY]: z.array(z.object({ answer: fitAnswer, text: z.string() })),
+  preferences: z.array(z.object({ number: z.number().int(), answer: fitAnswer })),
   [VERDICT_KEY]: z.enum(enumValues(verdictField)),
 });
 
