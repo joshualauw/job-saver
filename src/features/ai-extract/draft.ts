@@ -31,6 +31,13 @@ export interface BuildDraftResult {
   readonly missing: readonly JobFieldKey[];
 }
 
+const PLATFORM_KEY = "platform" satisfies JobFieldKey;
+const JOB_URL_KEY = "jobUrl" satisfies JobFieldKey;
+const STATUS_KEY = "status" satisfies JobFieldKey;
+const SKILLS_KEY = "skills" satisfies JobFieldKey;
+const APPLIED_AT_KEY = "appliedAt" satisfies JobFieldKey;
+const LAST_UPDATED_KEY = "lastUpdatedAt" satisfies JobFieldKey;
+
 function isBlank(value: unknown): boolean {
   return value === null || value === undefined || (typeof value === "string" && value.trim() === "");
 }
@@ -44,19 +51,19 @@ const AI_KEYS: ReadonlySet<string> = new Set(fields.filter((field) => field.sour
 export function buildJobDraft({ source, llm, status, saved }: BuildDraftInput): BuildDraftResult {
   const merged: Record<string, unknown> = { ...saved };
 
-  for (const [key, value] of Object.entries({ ...llm, skills: normalizeList(llm.skills) })) {
+  for (const [key, value] of Object.entries({ ...llm, [SKILLS_KEY]: normalizeList(llm.skills) })) {
     if (!AI_KEYS.has(key)) continue;
     const empty = isBlank(value) || (Array.isArray(value) && value.length === 0);
     if (!saved || !empty) merged[key] = value;
   }
 
-  merged["platform"] = source?.platform ?? null;
-  merged["jobUrl"] = source?.jobUrl ?? null;
+  merged[PLATFORM_KEY] = source?.platform ?? null;
+  merged[JOB_URL_KEY] = source?.jobUrl ?? null;
   if (saved) {
-    if (isBlank(merged["status"])) merged["status"] = status;
-    if (!Array.isArray(merged["skills"])) merged["skills"] = [];
+    if (isBlank(merged[STATUS_KEY])) merged[STATUS_KEY] = status;
+    if (!Array.isArray(merged[SKILLS_KEY])) merged[SKILLS_KEY] = [];
   } else {
-    Object.assign(merged, { status, appliedAt: null, lastUpdatedAt: null });
+    Object.assign(merged, { [STATUS_KEY]: status, [APPLIED_AT_KEY]: null, [LAST_UPDATED_KEY]: null });
   }
 
   const missing: JobFieldKey[] = [];

@@ -3,13 +3,15 @@ import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import type { JobValues } from "@/config/fields";
+import type { JobFieldKey, JobValues } from "@/config/fields";
 
 import { FieldInput } from "./FieldInput";
 import { applyStatusRules, todayIso } from "./status-rules";
 import { jobFormResolver, validateInputs } from "./validate";
 import { formFields } from "./form-values";
 import type { FormInputs } from "./form-values";
+
+const APPLIED_AT_KEY = "appliedAt" satisfies JobFieldKey;
 
 interface Props {
   initialInputs: FormInputs;
@@ -47,7 +49,7 @@ export function JobForm({
       formState: { values: true },
       callback: ({ values, name }) => {
         const next = applyStatusRules(values, name, todayIso());
-        if (next !== values) form.setValue("appliedAt", next["appliedAt"] ?? "", { shouldDirty: true });
+        if (next !== values) form.setValue(APPLIED_AT_KEY, next[APPLIED_AT_KEY] ?? "", { shouldDirty: true });
         onChange(next);
       },
     });

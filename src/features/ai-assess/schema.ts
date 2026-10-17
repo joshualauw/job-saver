@@ -5,6 +5,7 @@ import type { JobFieldKey } from "@/config/fields";
 import { enumValues } from "@/core/schema";
 
 const VERDICT_KEY = "verdict" satisfies JobFieldKey;
+const CV_FIT_KEY = "cvFit" satisfies JobFieldKey;
 
 const verdictField = fields.find((field) => field.key === VERDICT_KEY);
 if (!verdictField) throw new Error(`Field "${VERDICT_KEY}" is missing from the field list`);
@@ -20,9 +21,9 @@ export type PreferenceAnswer = (typeof PREFERENCE_ANSWERS)[number];
  * the numbered list it was given, so their wording is never reproduced and cannot drift.
  */
 export const assessmentAnswerSchema = z.object({
-  cvFit: z.string().nullable(),
+  [CV_FIT_KEY]: z.string().nullable(),
   preferences: z.array(z.object({ number: z.number().int(), answer: z.enum(PREFERENCE_ANSWERS) })),
-  verdict: z.enum(enumValues(verdictField)),
+  [VERDICT_KEY]: z.enum(enumValues(verdictField)),
 });
 
 export type AssessmentAnswer = z.infer<typeof assessmentAnswerSchema>;
