@@ -1,108 +1,99 @@
 # Architecture
 
-How Job Saver is shaped and why. What it is for and where it is heading: [PRD.md](PRD.md).
-Rules for contributors: [CLAUDE.md](../CLAUDE.md). Details live in the code; this file only
-records structure and decisions.
+How Job Saver is shaped and why. What it is for and where it is heading: [PRD.md](PRD.md). Rules
+the code follows: [CLAUDE.md](../CLAUDE.md). This file records structure and decisions; the details
+live in the code.
 
-## Overview
+## At a glance
 
-A Manifest V3 Chrome extension that lives in the **side panel**. It reads the current job page,
-asks OpenAI for structured fields, lets the user review them in a form, and appends or updates a
-row in the user's Google Sheet. Everything runs inside the extension; there is no backend.
+A Manifest V3 Chrome extension that lives in the **side panel**. It reads the job page you are
+looking at, asks OpenAI to fill a form, lets you review it, and writes a row to **your own Google
+Sheet**. Optionally it also judges the job against your CV and preferences.
 
+- **No backend.** Everything runs in the extension. The only network calls go to OpenAI and Google.
+- **AI proposes, you decide.** Every value is visible and editable before it is saved.
+- **Stack:** TypeScript (strict), WXT, React, Chakra UI, react-hook-form + zod, TanStack Query,
+  the OpenAI SDK (Structured Outputs), the Google Sheets API, Vitest.
+
+## Data flow
+
+```mermaid
+flowchart TD
+    Page["Job page in a tab"] -->|"injected script reads it once"| Payload["Page payload<br/>URL, facts, text, JSON-LD"]
+    Sheet[("Your Google Sheet")] -.->|"already saved? reuse the row"| Merge
+
+    Payload --> Extractor["Extractor (OpenAI)<br/>fills the form fields"]
+    Payload --> Assessor["Assessor (OpenAI)<br/>only if a CV or preferences are set"]
+    Local[("CV and preferences<br/>browser storage")] --> Assessor
+
+    Extractor --> Merge["Merge and validate<br/>code-owned fields win"]
+    Assessor --> Merge
+    Merge --> Review["Review form + fit card"]
+    Review -->|Save| Sink["Sheet sink<br/>maps values to columns"]
+    Sink --> Sheet
 ```
- job page ──inject script──▶ side panel (React) ──▶ OpenAI
-                                  │
-                                  └──────────────▶ Google Sheets
-```
 
-## Stack
+1. **Read once.** A small script injected into the tab returns one payload: URL, title, labelled
+   facts read via per-site selectors, the cleaned ad text and any JSON-LD. A text selection you
+   made takes precedence; unknown sites fall back to generic page text.
+2. **Two requests, in parallel, same payload.** The extractor fills the tracked fields. The
+   assessor (when you have set a CV or preferences) returns a CV fit, a yes / no / not stated for
+   each preference, and a verdict. A failed assessment never loses the extracted form.
+3. **Merge.** Code derives what it can (platform, clean URL, defaults) and the model cannot override
+   it. The result is validated and loaded into the form, with missing fields flagged.
+4. **Review and save.** Drafts survive closing the panel. Save maps values to columns by header
+   name, finds the row by job URL, then updates it or fills the next empty formatted row.
 
-TypeScript (strict), WXT (MV3 build), React, Chakra UI v3, react-hook-form + zod, TanStack Query,
-OpenAI SDK (Responses API, Structured Outputs), Google Sheets API via `fetch`,
-`chrome.identity` for Google auth, `chrome.storage` for settings and drafts, Vitest + happy-dom,
-ESLint + Prettier, pnpm.
+## What makes it more than a form
 
-## Design principles
+- **Fields are data.** One list defines every tracked field. The form, the validation schemas, the
+  model's output schema and the sheet mapping are all derived from it, so adding a field is a
+  one-place change.
+- **The page is untrusted.** Job postings are arbitrary web content, so they go only in the user
+  message, fenced and escaped, and the prompts tell the model to ignore instructions inside them. A
+  posting cannot talk up its own verdict.
+- **The model suggests, code decides.** Preferences are answered by number and code writes the sheet
+  text; the verdict is an enum from the field config; anything code can know is never left to the
+  model. Unknown means `null`, not a guess.
+- **A spreadsheet is the database.** Columns are matched by header name, so you can reorder the
+  sheet or add your own columns. Rows are identified by job URL, which gives edit mode and
+  status-change tracking. Updates write only the columns the app owns, new jobs go into the first
+  empty formatted row so dropdowns survive, and sheet text is guarded against formula injection.
+- **Permissions that fit a side panel.** The panel outlives tab switches but `activeTab` does not,
+  so supported sites get static host access. Any other site is allowed one at a time through an
+  "Allow on this site" button (optional host permissions).
+- **Replaceable edges.** OpenAI and Sheets sit behind small interfaces, so the logic is pure and
+  tested without network or `chrome`.
 
-- **The side panel does the work.** It is an extension page, so it can inject scripts and call
-  OpenAI and Google directly. The service worker only opens the panel.
-- **Fields are data.** One config list defines every tracked field; the form, validation schemas,
-  the model's output schema and the sheet mapping are all derived from it.
-- **Deterministic beats AI.** Anything code can derive reliably (platform, clean URL, defaults)
-  is never left to the model, and the model cannot override it.
-- **Ports and adapters.** OpenAI and Sheets sit behind small interfaces, so core logic is pure and
-  testable without network or `chrome`.
-- **Validate at boundaries.** Model output, storage, API responses and page data are parsed with
-  zod before use.
-- **One composition root.** Cross-feature wiring happens in the side panel entrypoint; features
-  never import each other.
+## Code map
 
-## Layers
+| Folder                      | Responsibility                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `src/entrypoints`           | The side panel app (the one place features are wired together), the background worker, two injected scripts. |
+| `src/config`                | Declarative knowledge: the field list, per-site platforms (hosts, URL cleaning, selectors), tunables.        |
+| `src/core`                  | Pure types, schemas, row mapping, prompt fencing, errors. No `chrome`, `fetch` or `openai`.                  |
+| `src/features`              | Vertical slices, each owning its components, hooks and adapters; they never import each other.               |
+| `src/features/page-extract` | Turns a page into the payload.                                                                               |
+| `src/features/ai-extract`   | The extractor: prompt, OpenAI call, merge with code-owned values.                                            |
+| `src/features/ai-assess`    | The assessor and the fit card.                                                                               |
+| `src/features/job-form`     | The review form, validation, draft persistence, status and date rules.                                       |
+| `src/features/sheet-sync`   | Google sign-in, the Sheets client and the sink.                                                              |
+| `src/features/settings`     | API key, sheet, CV and preferences; first-run setup.                                                         |
+| `src/lib`                   | Thin wrappers around the browser, storage and OpenAI, plus small utilities.                                  |
+| `src/theme`                 | Chakra configuration, dark mode and toasts.                                                                  |
+| `tests`                     | Fixtures (saved pages), helpers, and checks that keep the README and sheet template in sync.                 |
+| `templates`                 | The blank Google Sheet template.                                                                             |
+| `docs`                      | This file, the product doc, and plans written while building features.                                       |
 
-- `src/entrypoints`: the side panel app, the background worker, and the unlisted script injected
-  into job pages.
-- `src/config`: declarative app knowledge: the field list, platforms (hosts, URL cleaning, page
-  selectors) and tunables.
-- `src/core`: pure types, schemas, mapping and errors. No `chrome`, `fetch` or `openai`.
-- `src/features`: vertical slices (page extraction, AI extraction, form, sheet sync, settings),
-  each owning its components, hooks and adapters.
-- `src/lib`: thin wrappers around browser APIs and small utilities.
-- `src/theme`: Chakra configuration.
+## Security and privacy
 
-## Flow
+- Page text and your CV go only to OpenAI, with `store: false`. Rows go only to Google Sheets.
+- The API key and the CV live in browser storage and never in the sheet, the logs or error messages.
+- The key is used directly from the browser. That is acceptable only because this is a personal,
+  unpublished build; never ship a build that contains a key.
 
-1. The user opens the panel on a job page and clicks Analyze.
-2. A bundled script injected into the tab returns a payload: URL, title, labelled facts read via
-   platform selectors, cleaned ad text, and any JSON-LD. A deliberate text selection takes
-   precedence; unknown sites fall back to generic page text.
-3. Code derives platform, clean job URL and defaults.
-4. OpenAI returns the AI-owned fields as strict JSON; unknowns are `null` (lists are `[]`).
-5. The result is merged (code-owned fields win), validated, and loaded into the form with missing
-   fields flagged. Drafts persist in session storage.
-6. The user edits and saves.
-7. The sink maps values to columns by header name, looks the row up by job URL, then appends or
-   updates it.
+## Testing
 
-When the user has set a CV or preferences, step 4 has a twin: a second OpenAI request, the
-assessor, runs at the same time and judges the same page against them. Its result is merged into
-the form values and shown in a card, so it is saved and restored with the rest of the job.
-
-## Integrations
-
-**OpenAI.** Structured Outputs with a schema generated from the field list, so the model can only
-return known fields and enum values. Requests set `store: false`. The API key is stored locally and
-used from the browser, which is acceptable only because the extension is personal and unpublished.
-The model name is configuration, not code. Extraction and the assessor share one request helper;
-the assessor's output is a separate schema (preferences are answered by number and code writes the
-sheet text), and its fields have their own source so extraction never sees them. The CV is read in
-the browser from a PDF or text file, kept as plain text in local storage, and sent only to OpenAI.
-
-**Google Sheets.** Auth through `chrome.identity` using the Chrome-signed-in account. Columns are
-matched by header name, so the sheet can be reordered or extended freely, and a missing header is
-a clear error. Rows are identified by job URL, which is what makes edit mode and status-change
-tracking possible. Sheet text is guarded against formula injection.
-
-One-time setup (by the user): Google Cloud project with the Sheets API enabled, OAuth consent
-screen in Testing mode with the user as a test user, a Chrome-extension OAuth client bound to a
-fixed extension ID (manifest `key`), and a sheet tab whose row 1 contains the column names from
-the field config. The OAuth client ID lives in the gitignored `.env.local` (`OAUTH_CLIENT_ID`) and
-is injected into the manifest at build time. Analyze reuses a row already in the sheet instead of
-calling the model unless the user asks to re-analyze it, and updates write only the columns the app owns, so user-added columns survive.
-
-## Security and permissions
-
-- Page content and the API key go only to OpenAI and Google.
-- Page text is untrusted: it is fenced in the user message and never enters the system prompt.
-- Permissions stay minimal. Supported platforms get static host access because the panel outlives
-  tab switches while `activeTab` does not. Any other site is allowed one at a time: when Analyze
-  cannot read a tab, the panel offers an "Allow on this site" button that asks Chrome for that
-  site only (optional host permissions). The `tabs` permission lets the panel see the URL of a
-  site it cannot read yet, so it knows which site to ask for.
-
-## Testing approach
-
-Pure logic and adapters are unit-tested with Vitest, with `fetch` and OpenAI mocked. Page
-extraction is tested against saved real pages (`tests/fixtures`) loaded into happy-dom with
-scripts disabled, so selector drift in our config is caught; refresh the fixtures if a live site
-changes. There is no end-to-end browser automation.
+Pure logic and adapters are unit-tested with Vitest, with `fetch` and OpenAI mocked. Page extraction
+runs against saved real pages loaded with scripts disabled, so selector drift is caught; refresh the
+fixtures if a live site changes. There is no end-to-end browser automation.
