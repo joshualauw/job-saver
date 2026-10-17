@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 import { fields } from "@/config/fields";
 
 import { MissingColumnsError, SchemaError } from "./errors";
-import { fromSheetRow, guardFormula, toSheetCells, toSheetRow } from "./row-mapping";
+import { asSheetReturns } from "../../tests/helpers/as-sheet-returns";
+import { asText, fromSheetRow, toSheetCells, toSheetRow } from "./row-mapping";
 
 const header = fields.map((field) => field.column);
 
@@ -31,42 +32,59 @@ const values = {
   verdict: "very_high",
 };
 
-describe("guardFormula", () => {
-  it.each(["=SUM(A1)", "+1", "-1", "@cmd", "\tcmd"])("prefixes %j", (text) => {
-    expect(guardFormula(text)).toBe(`'${text}`);
-  });
-
-  it("leaves safe text untouched", () => {
-    expect(guardFormula("Backend Engineer")).toBe("Backend Engineer");
-  });
+describe("asText", () => {
+  it.each(["=SUM(A1)", "+1", "-1", "@cmd", "\tcmd", "12-14", "3/4", "2024", "TRUE", "Backend Engineer"])(
+    "prefixes %j so Sheets stores it as text",
+    (text) => {
+      expect(asText(text)).toBe(`'${text}`);
+    },
+  );
 });
 
 describe("toSheetRow", () => {
   it("writes values in header order, using enum labels and blanks for null", () => {
     const row = toSheetRow(fields, values, header);
     expect(row).toEqual([
-      "Acme",
-      "Backend Engineer",
+      "'Acme",
+      "'Backend Engineer",
       "",
       "Full-time",
       "Remote",
-      "Jobstreet",
-      "https://id.jobstreet.com/id/job/12345678",
+      "'Jobstreet",
+      "'https://id.jobstreet.com/id/job/12345678",
       "Applied",
       "2026-10-15",
       "",
       2,
-      "node.js, postgres",
+      "'node.js, postgres",
       "Month",
-      "IDR",
+      "'IDR",
       8_000_000,
       "",
-      "Builds APIs.",
-      "BPJS; 9-5 working hours",
-      "Strong match on the backend stack.",
-      "Yes: Remote work\nNo: Salary above 10M",
+      "'Builds APIs.",
+      "'BPJS; 9-5 working hours",
+      "'Strong match on the backend stack.",
+      "'Yes: Remote work\nNo: Salary above 10M",
       "Very high",
     ]);
+  });
+
+  it("stores text that Sheets would read as a date, number or boolean as literal text", () => {
+    const row = toSheetRow(
+      fields,
+      { ...values, address: "12-14", notes: "3/4", company: "2024", summary: "TRUE" },
+      header,
+    );
+    expect(row[header.indexOf("Address")]).toBe("'12-14");
+    expect(row[header.indexOf("Notes")]).toBe("'3/4");
+    expect(row[header.indexOf("Company")]).toBe("'2024");
+    expect(row[header.indexOf("Summary")]).toBe("'TRUE");
+  });
+
+  it("keeps blank text cells blank rather than writing a bare apostrophe", () => {
+    const row = toSheetRow(fields, { ...values, summary: "", notes: null }, header);
+    expect(row[header.indexOf("Summary")]).toBe("");
+    expect(row[header.indexOf("Notes")]).toBe("");
   });
 
   it("maps by header name, not position, and leaves unknown columns blank", () => {
@@ -74,13 +92,13 @@ describe("toSheetRow", () => {
     const row = toSheetRow(fields, values, shuffled);
     expect(row).toHaveLength(shuffled.length);
     expect(row[0]).toBe("");
-    expect(row[shuffled.indexOf("Company")]).toBe("Acme");
+    expect(row[shuffled.indexOf("Company")]).toBe("'Acme");
     expect(row[shuffled.indexOf("Min Salary")]).toBe(8_000_000);
   });
 
   it("matches headers ignoring case and surrounding whitespace", () => {
     const sloppy = header.map((name) => ` ${name.toUpperCase()} `);
-    expect(toSheetRow(fields, values, sloppy)[0]).toBe("Acme");
+    expect(toSheetRow(fields, values, sloppy)[0]).toBe("'Acme");
   });
 
   it("throws MissingColumnsError naming every missing header", () => {
@@ -101,7 +119,7 @@ describe("toSheetRow", () => {
 
   it("writes skills as one normalised, comma-separated cell", () => {
     const row = toSheetRow(fields, { ...values, skills: ["Node.js ", "TypeScript", "node.js", ""] }, header);
-    expect(row[header.indexOf("Skills")]).toBe("node.js, typescript");
+    expect(row[header.indexOf("Skills")]).toBe("'node.js, typescript");
   });
 
   it("writes an empty skills list as a blank cell", () => {
@@ -124,7 +142,7 @@ describe("toSheetRow", () => {
 
 describe("fromSheetRow", () => {
   it("round-trips a row written by toSheetRow", () => {
-    const row = toSheetRow(fields, values, header);
+    const row = asSheetReturns(toSheetRow(fields, values, header));
     expect(fromSheetRow(fields, row, header)).toEqual(values);
   });
 
@@ -175,7 +193,7 @@ describe("toSheetCells", () => {
 
     expect(cells).toHaveLength(fields.length);
     expect(cells.map((cell) => cell.index)).not.toContain(0);
-    expect(cells.find((cell) => cell.index === withExtra.indexOf("Company"))?.value).toBe("Acme");
+    expect(cells.find((cell) => cell.index === withExtra.indexOf("Company"))?.value).toBe("'Acme");
   });
 
   it("throws MissingColumnsError like toSheetRow", () => {
@@ -186,7 +204,7 @@ describe("toSheetCells", () => {
 describe("assessment columns", () => {
   it("keep multi-line text and write the verdict as its label", () => {
     const row = toSheetRow(fields, values, header);
-    expect(row[header.indexOf("Preference Fit")]).toBe("Yes: Remote work\nNo: Salary above 10M");
+    expect(row[header.indexOf("Preference Fit")]).toBe("'Yes: Remote work\nNo: Salary above 10M");
     expect(row[header.indexOf("Verdict")]).toBe("Very high");
   });
 
@@ -196,7 +214,7 @@ describe("assessment columns", () => {
   });
 
   it("read back an unknown verdict label as null", () => {
-    const row = toSheetRow(fields, values, header);
+    const row = asSheetReturns(toSheetRow(fields, values, header));
     row[header.indexOf("Verdict")] = "Excellent";
     expect(fromSheetRow(fields, row, header)["verdict"]).toBeNull();
   });

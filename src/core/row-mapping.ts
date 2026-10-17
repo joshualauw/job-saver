@@ -6,7 +6,6 @@ export type CellValue = string | number | string[] | null;
 /** What the Sheets API returns for a cell. */
 export type RawCell = string | number | boolean | null | undefined;
 
-const FORMULA_START = /^[=+\-@\t\r]/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const PLAIN_NUMBER = /^-?\d+(\.\d+)?$/;
 const GROUPED_NUMBER = /^-?\d{1,3}([.,]\d{3})+$/;
@@ -16,11 +15,13 @@ const MS_PER_DAY = 86_400_000;
 const MAX_SERIAL = 2_958_465; // 9999-12-31
 
 /**
- * Sheet-bound text comes from arbitrary web pages. With `USER_ENTERED`, a leading `=`, `+`,
- * `-` or `@` would be evaluated as a formula, so force it to be stored as text.
+ * Sheet-bound text comes from arbitrary web pages. With `USER_ENTERED`, Sheets would evaluate a
+ * leading `=`, `+`, `-` or `@` as a formula and turn text such as `12-14`, `3/4`, `2024` or `TRUE`
+ * into a date, number or boolean. A leading apostrophe makes it store the text as typed; it is
+ * not part of the stored value, so reads never see it.
  */
-export function guardFormula(text: string): string {
-  return FORMULA_START.test(text) ? `'${text}` : text;
+export function asText(text: string): string {
+  return `'${text}`;
 }
 
 function normalizeHeader(header: string): string {
@@ -71,14 +72,16 @@ function encodeCell(field: FieldDef, value: unknown): string | number {
         throw new SchemaError(`"${field.label}" must be a YYYY-MM-DD date.`);
       }
       return value;
-    case "stringList":
+    case "stringList": {
       if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
         throw new SchemaError(`"${field.label}" must be a list of text values.`);
       }
-      return guardFormula(joinList(value as string[]));
+      const joined = joinList(value as string[]);
+      return joined === "" ? "" : asText(joined);
+    }
     case "string":
     case "text":
-      return guardFormula(String(value));
+      return asText(String(value));
   }
 }
 

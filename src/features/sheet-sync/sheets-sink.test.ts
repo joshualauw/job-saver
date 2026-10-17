@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { fields } from "@/config/fields";
 import { MissingColumnsError, SchemaError, UnexpectedError } from "@/core/errors";
 import { toSheetRow } from "@/core/row-mapping";
+import { asSheetReturns } from "../../../tests/helpers/as-sheet-returns";
 
 import { columnLetter } from "./a1-notation";
 import type { SheetsClient } from "./sheets-client";
@@ -41,7 +42,7 @@ function values(overrides: Record<string, unknown> = {}): Record<string, unknown
 }
 
 function rowFor(overrides: Record<string, unknown> = {}, comment = "keep me") {
-  const row = toSheetRow(fields, values(overrides), header);
+  const row = asSheetReturns(toSheetRow(fields, values(overrides), header));
   row[col("My Comments")] = comment;
   return row;
 }
@@ -95,7 +96,7 @@ describe("sheets sink: save a new job", () => {
     const [path, body] = post.mock.calls[0] as [string, BatchBody];
     expect(path).toBe("values:batchUpdate");
     expect(body.valueInputOption).toBe("USER_ENTERED");
-    expect(cellWritten(body, "Company", 3)).toBe("Ryvo");
+    expect(cellWritten(body, "Company", 3)).toBe("'Ryvo");
     expect(cellWritten(body, "Status", 3)).toBe("Applied");
     expect(cellWritten(body, "Last Updated At", 3)).toBe("");
   });
