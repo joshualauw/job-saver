@@ -1,5 +1,5 @@
 import { buildFormSchema, buildLlmSchema } from "@/core/schema";
-import type { FieldDef, LlmValuesOf, ValuesOf } from "@/core/types";
+import type { AssessmentValuesOf, FieldDef, LlmValuesOf, ValuesOf } from "@/core/types";
 
 const contractTypes = [
   { value: "full_time", label: "Full-time" },
@@ -238,6 +238,8 @@ export type JobFieldKey = (typeof fields)[number]["key"];
 export type JobValues = ValuesOf<typeof fields>;
 /** What the model returns: AI-sourced fields only. */
 export type LlmJobValues = LlmValuesOf<typeof fields>;
+/** What the assessor produces: the assessment fields only. */
+export type AssessmentValues = AssessmentValuesOf<typeof fields>;
 
 export const jobFormSchema = buildFormSchema(fields);
 export const jobLlmSchema = buildLlmSchema(fields);

@@ -1,12 +1,11 @@
 import { appConfig } from "@/config/app";
 import type { PagePayload } from "@/core/page-payload";
+import { pagePromptSections } from "@/core/page-prompt";
 
 export interface Prompt {
   readonly system: string;
   readonly user: string;
 }
-
-const MAX_JSON_LD_CHARS = 4_000;
 
 /**
  * How `skills` should be chosen. The 60/30/10 mix is guidance for emphasis, not a quota: the
@@ -73,32 +72,8 @@ export function buildSystemPrompt(summaryLanguage: string = appConfig.summaryLan
   ].join("\n");
 }
 
-/** Stops page text from closing a fence or opening a new one. */
-function escapeForFence(text: string): string {
-  return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function section(tag: string, body: string): string {
-  return `<${tag}>\n${escapeForFence(body)}\n</${tag}>`;
-}
-
 export function buildUserPrompt(payload: PagePayload): string {
-  const parts: string[] = [section("page_url", payload.url)];
-
-  if (payload.title.trim() !== "") parts.push(section("page_title", payload.title));
-
-  const facts = Object.entries(payload.facts);
-  if (facts.length > 0) {
-    parts.push(section("facts", facts.map(([label, value]) => `${label}: ${value}`).join("\n")));
-  }
-
-  if (payload.description.trim() !== "") parts.push(section("job_description", payload.description));
-
-  if (payload.jsonLd.length > 0) {
-    parts.push(section("json_ld", JSON.stringify(payload.jsonLd).slice(0, MAX_JSON_LD_CHARS)));
-  }
-
-  return parts.join("\n\n");
+  return pagePromptSections(payload).join("\n\n");
 }
 
 export function buildPrompt(payload: PagePayload, summaryLanguage?: string): Prompt {

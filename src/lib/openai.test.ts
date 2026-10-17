@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 
 import { AppError, AuthError, NetworkError, RateLimitError, SchemaError, UnexpectedError } from "@/core/errors";
 
-import { mapOpenAIError } from "./map-openai-error";
+import { mapOpenAIError, requestStructured } from "./openai";
+import type { OpenAIClient } from "./openai";
 
 const KEY = "sk-secret-key-123";
 
@@ -61,5 +63,59 @@ describe("mapOpenAIError", () => {
       expect(mapped.message).not.toContain(KEY);
       expect(mapped.cause).toBe(error);
     }
+  });
+});
+
+describe("requestStructured", () => {
+  const schema = z.object({ value: z.string() });
+
+  function clientReturning(result: unknown) {
+    const parse = vi.fn().mockResolvedValue(result);
+    return { client: { responses: { parse } } as unknown as OpenAIClient, parse };
+  }
+
+  const ask = (client: OpenAIClient) =>
+    requestStructured({ client, model: "m", system: "rules", user: "content", schema, schemaName: "thing" });
+
+  it("returns the validated answer", async () => {
+    const { client } = clientReturning({ output: [], output_parsed: { value: "ok" } });
+    await expect(ask(client)).resolves.toEqual({ value: "ok" });
+  });
+
+  it("sends the model, store:false, a system and a user message and the strict schema", async () => {
+    const { client, parse } = clientReturning({ output: [], output_parsed: { value: "ok" } });
+    await ask(client);
+
+    const request = parse.mock.calls[0]?.[0] as {
+      model: string;
+      store: boolean;
+      input: { role: string; content: string }[];
+      text: { format: { name: string; strict: boolean } };
+    };
+    expect(request.model).toBe("m");
+    expect(request.store).toBe(false);
+    expect(request.input).toEqual([
+      { role: "system", content: "rules" },
+      { role: "user", content: "content" },
+    ]);
+    expect(request.text.format).toMatchObject({ name: "thing", strict: true });
+  });
+
+  it("throws SchemaError for a refusal, a missing answer and a wrong shape", async () => {
+    const refusal = {
+      output: [{ type: "message", content: [{ type: "refusal", refusal: "No." }] }],
+      output_parsed: null,
+    };
+    await expect(ask(clientReturning(refusal).client)).rejects.toBeInstanceOf(SchemaError);
+    await expect(ask(clientReturning({ output: [], output_parsed: null }).client)).rejects.toBeInstanceOf(SchemaError);
+    await expect(ask(clientReturning({ output: [], output_parsed: { value: 1 } }).client)).rejects.toBeInstanceOf(
+      SchemaError,
+    );
+  });
+
+  it("maps SDK failures to typed errors", async () => {
+    const parse = vi.fn().mockRejectedValue(httpError(401));
+    const client = { responses: { parse } } as unknown as OpenAIClient;
+    await expect(ask(client)).rejects.toBeInstanceOf(AuthError);
   });
 });

@@ -64,6 +64,11 @@ export type LlmValuesOf<Fs extends readonly FieldDef[]> = {
   -readonly [F in Fs[number] as F extends { source: "ai" } ? F["key"] : never]: LlmFieldValue<F>;
 };
 
+/** Values of the fields judged by the assessor: only `source: "assessment"` fields. */
+export type AssessmentValuesOf<Fs extends readonly FieldDef[]> = {
+  -readonly [F in Fs[number] as F extends { source: "assessment" } ? F["key"] : never]: FieldValue<F>;
+};
+
 /** Where to find a platform's job content in the page DOM. */
 export interface PlatformContentSelectors {
   /** Label → CSS selector. The first match's text becomes a labelled fact for the extractor. */
@@ -119,4 +124,18 @@ export interface Sink {
 /** Turns page content into typed values (OpenAI today); implementations live in features. */
 export interface Extractor<T> {
   extract(payload: PagePayload): Promise<T>;
+}
+
+/** What the assessor judges a job against. The CV and preferences are the user's own. */
+export interface AssessmentInput {
+  readonly payload: PagePayload;
+  /** Cleaned CV text, or `null` when none is set. */
+  readonly cv: string | null;
+  /** One entry per preference; empty when none are set. */
+  readonly preferences: readonly string[];
+}
+
+/** Judges how well a job fits the user (OpenAI today); implementations live in features. */
+export interface Assessor<T> {
+  assess(input: AssessmentInput): Promise<T>;
 }

@@ -1,6 +1,6 @@
 # AI analyzer
 
-Status: steps 1 and 2 done; steps 3 to 6 not started. Product context: [PRD.md](../PRD.md). Shape of the code:
+Status: steps 1 to 3 done; steps 4 to 6 not started. Product context: [PRD.md](../PRD.md). Shape of the code:
 [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Goal
@@ -95,7 +95,18 @@ no extra flags. Step 3 builds the assessor's output schema from the same source.
   columns.
 - Done when: a job can be saved with these values and read back.
 
-### 3. The assessor
+### 3. The assessor (done)
+
+Decisions made while building it:
+
+- The model answers each preference by its number in a numbered list (yes, no or not stated), and
+  code builds the sheet text from the user's own wording. A wrong count or number is an error.
+- It gets the page payload, not the extracted values, so step 4 can run it in parallel with
+  extraction. The CV fit is empty without a CV and the preference fit is empty without preferences,
+  enforced in code. The verdict is always produced.
+- The OpenAI call plumbing (error mapping, refusal handling, `store: false`) and the page-to-prompt
+  formatting were moved to shared code so extraction and assessment use the same ones.
+- The verdict rubric in the prompt is a first draft to tune on real postings.
 
 - A new port for "judge a job against a CV and preferences", and an OpenAI adapter beside the
   existing extractor, using the same patterns (structured output, `store: false`, typed errors,

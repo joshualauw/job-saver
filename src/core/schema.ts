@@ -3,7 +3,7 @@ import { z } from "zod";
 import { normalizeList } from "./normalize";
 import type { FieldDef, LlmValuesOf, ValuesOf } from "./types";
 
-function enumValues(field: FieldDef): [string, ...string[]] {
+export function enumValues(field: FieldDef): [string, ...string[]] {
   const values = field.options?.map((option) => option.value) ?? [];
   const [first, ...rest] = values;
   if (first === undefined) {
