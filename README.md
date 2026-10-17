@@ -158,7 +158,6 @@ pnpm typecheck
 pnpm build
 ```
 
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how it is built.
-- [docs/PRD.md](docs/PRD.md): what it is for and where it is going.
-- [docs/plans](docs/plans): the plans written while building features.
+- [ARCHITECTURE.md](ARCHITECTURE.md): how it is built.
+- [docs](docs): product decisions and feature plans, what it is for and where it is going.
 - [CLAUDE.md](CLAUDE.md): the rules the code follows, written for Claude Code but readable by anyone.

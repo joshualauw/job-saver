@@ -25,7 +25,7 @@ export default defineConfig({
       name: "Job Saver",
       description: "Extract job details from the current page with AI and save them to Google Sheets.",
       key: EXTENSION_KEY,
-      // Permissions are added as the features that need them land (see docs/ARCHITECTURE.md).
+      // Permissions are added as the features that need them land (see ARCHITECTURE.md).
       // The panel outlives tab switches but `activeTab` does not (and opening the panel from the
       // icon does not reliably grant it), so supported platforms get static host access and any
       // other site is allowed one at a time from the panel (optional host permissions). `tabs`

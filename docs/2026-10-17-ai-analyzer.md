@@ -1,6 +1,6 @@
 # AI analyzer
 
-Status: all steps built; the manual checks with a real CV and key are still to do. Product context: [PRD.md](../PRD.md). Shape of the code:
+Status: all steps built; the manual checks with a real CV and key are still to do. Product context: [MVP](2026-10-14-mvp.md). Shape of the code:
 [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Goal

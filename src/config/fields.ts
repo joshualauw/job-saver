@@ -44,7 +44,7 @@ const salaryPeriods = [
 
 /**
  * THE source of truth for tracked job fields. Schemas, the form, the LLM schema, and the
- * sheet mapping are all derived from this list (see docs/ARCHITECTURE.md).
+ * sheet mapping are all derived from this list (see ARCHITECTURE.md).
  */
 export const fields = [
   {

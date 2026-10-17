@@ -3,7 +3,8 @@
 Personal Chrome extension (MV3 side panel): AI extracts job fields from the current page, the
 user reviews them, Save writes a row to a Google Sheet.
 
-- What and why: [docs/PRD.md](docs/PRD.md). How it is shaped: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- What and why: product decisions live in [docs](docs). How it is shaped:
+  [ARCHITECTURE.md](ARCHITECTURE.md).
   Read the architecture before cross-feature work. If a doc and the code disagree, the code wins:
   say so and fix the doc.
 - **Docs describe intent, not code.** Never paste code, field lists, prompt text, selectors or

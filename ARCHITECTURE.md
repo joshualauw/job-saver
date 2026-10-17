@@ -1,7 +1,7 @@
 # Architecture
 
-How Job Saver is shaped and why. What it is for and where it is heading: [PRD.md](PRD.md). Rules
-the code follows: [CLAUDE.md](../CLAUDE.md). This file records structure and decisions; the details
+How Job Saver is shaped and why. What it is for and where it is heading: the product decisions in
+[docs](docs). Rules the code follows: [CLAUDE.md](CLAUDE.md). This file records structure and decisions; the details
 live in the code.
 
 ## At a glance
