@@ -3,7 +3,7 @@ import { z } from "zod";
 import { fields } from "@/config/fields";
 import type { JobFieldKey } from "@/config/fields";
 import { SchemaError, UnexpectedError } from "@/core/errors";
-import { fromSheetRow, toSheetCells, toSheetRow } from "@/core/row-mapping";
+import { columnIndexOf, fromSheetRow, toSheetCells, toSheetRow } from "@/core/row-mapping";
 import type { RawCell } from "@/core/row-mapping";
 import type { SavedJob, SaveResult, Sink } from "@/core/types";
 
@@ -67,12 +67,15 @@ export function createSheetsSink({ tab, client }: SheetsSinkOptions): Sink {
     return { header: headerRow.map((cell) => String(cell ?? "")), rows };
   }
 
+  // Compares just the Job URL cell of each row; only the matching row is decoded in full.
   function locate(snapshot: TabSnapshot, jobUrl: string): SavedJob | null {
-    for (const [index, row] of snapshot.rows.entries()) {
-      const decoded = fromSheetRow(fields, row, snapshot.header);
-      if (decoded[JOB_URL_KEY] === jobUrl) return { row: index + 2, values: decoded };
-    }
-    return null;
+    if (snapshot.rows.length === 0) return null;
+
+    const urlIndex = columnIndexOf(fields, JOB_URL_KEY, snapshot.header);
+    const index = snapshot.rows.findIndex((row) => String(row[urlIndex] ?? "") === jobUrl);
+    const row = snapshot.rows[index];
+    if (!row) return null;
+    return { row: index + 2, values: fromSheetRow(fields, row, snapshot.header) };
   }
 
   // Only the cells the app owns, so user-added columns, formulas, formats and validation stay intact.

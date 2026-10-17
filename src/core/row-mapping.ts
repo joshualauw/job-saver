@@ -85,6 +85,16 @@ function encodeCell(field: FieldDef, value: unknown): string | number {
   }
 }
 
+/**
+ * Zero-based header index of one field's column, so a caller can read a single cell without
+ * decoding the whole row. Throws `MissingColumnsError` if any configured column is absent.
+ */
+export function columnIndexOf(fields: readonly FieldDef[], key: string, headerRow: readonly string[]): number {
+  const column = resolveColumns(fields, headerRow).find(({ field }) => field.key === key);
+  if (!column) throw new SchemaError(`Unknown field "${key}".`);
+  return column.index;
+}
+
 export interface SheetCell {
   /** Zero-based column index in the header row. */
   readonly index: number;

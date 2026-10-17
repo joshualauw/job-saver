@@ -4,7 +4,7 @@ import { fields } from "@/config/fields";
 
 import { MissingColumnsError, SchemaError } from "./errors";
 import { asSheetReturns } from "../../tests/helpers/as-sheet-returns";
-import { asText, fromSheetRow, toSheetCells, toSheetRow } from "./row-mapping";
+import { asText, columnIndexOf, fromSheetRow, toSheetCells, toSheetRow } from "./row-mapping";
 
 const header = fields.map((field) => field.column);
 
@@ -198,6 +198,17 @@ describe("toSheetCells", () => {
 
   it("throws MissingColumnsError like toSheetRow", () => {
     expect(() => toSheetCells(fields, values, ["Company"])).toThrow(MissingColumnsError);
+  });
+});
+
+describe("columnIndexOf", () => {
+  it("finds a field's column by header name, wherever it sits", () => {
+    const shuffled = ["Comments", ...[...header].reverse()];
+    expect(columnIndexOf(fields, "jobUrl", shuffled)).toBe(shuffled.indexOf("Job URL"));
+  });
+
+  it("throws MissingColumnsError when the header lacks a configured column", () => {
+    expect(() => columnIndexOf(fields, "jobUrl", ["Job URL"])).toThrow(MissingColumnsError);
   });
 });
 
