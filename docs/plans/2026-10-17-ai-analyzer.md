@@ -150,7 +150,7 @@ The card:
 
 ### 5. Docs, polish and release (done)
 
-The CLAUDE.md rule was extended in step 1. The version bump is still to do.
+The CLAUDE.md rule was extended in step 1. The version is 1.2.0.
 
 - PRD: add the feature to product decisions and the roadmap; move "analyze with CV" out of any
   non-goal wording.
