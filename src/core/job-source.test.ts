@@ -16,7 +16,7 @@ describe("findPlatform", () => {
 });
 
 // Synthetic edge cases. The real `/id/job/<id>` shape is verified against saved pages in
-// tests/jobstreet-extraction.test.ts; the `?jobId=` search-page case is still unverified.
+// tests/jobstreet-extraction.test.ts.
 describe("resolveJobSource with the Jobstreet platform", () => {
   const resolve = (url: string) => resolveJobSource(url, platforms);
 
@@ -33,9 +33,9 @@ describe("resolveJobSource with the Jobstreet platform", () => {
     );
   });
 
-  it("derives the job URL from ?jobId= on search pages", () => {
-    expect(resolve("https://id.jobstreet.com/jobs?jobId=555&q=engineer")?.jobUrl).toBe(
-      "https://id.jobstreet.com/job/555",
+  it("only tidies a search page, never rewrites it to a job URL", () => {
+    expect(resolve("https://id.jobstreet.com/jobs?jobId=555&q=engineer&utm_source=x")?.jobUrl).toBe(
+      "https://id.jobstreet.com/jobs?jobId=555&q=engineer",
     );
   });
 

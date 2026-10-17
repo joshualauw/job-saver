@@ -8,7 +8,6 @@ const JOB_PATH = /^(?:\/[a-z]{2}(?:-[a-z]{2})?)?\/job\/\d+/i;
 /**
  * Verified against saved pages in tests/fixtures/jobstreet: `/id/job/<id>` URLs and the
  * `data-automation` hooks below (class names are hashed, these attributes are stable).
- * Not yet verified: the `?jobId=` search-page fallback in `canonicalizeUrl`.
  */
 const jobstreet: PlatformDef = {
   id: "jobstreet",
@@ -19,10 +18,7 @@ const jobstreet: PlatformDef = {
     const jobPath = JOB_PATH.exec(url.pathname)?.[0];
     if (jobPath) return new URL(`${url.origin}${jobPath}`);
 
-    // Search pages show the selected posting via ?jobId=<id>.
-    const jobId = url.searchParams.get("jobId");
-    if (jobId && /^\d+$/.test(jobId)) return new URL(`${url.origin}/job/${jobId}`);
-
+    // Only detail pages have a canonical job URL; search pages are not analysed.
     return stripTrackingParams(url);
   },
   content: {

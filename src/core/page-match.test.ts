@@ -17,8 +17,8 @@ describe("isSameJobPage", () => {
     expect(same("https://id.jobstreet.com/id/job/123", "https://id.jobstreet.com/id/job/456")).toBe(false);
   });
 
-  it("matches a search page showing the same posting", () => {
-    expect(same("https://id.jobstreet.com/jobs?jobId=123&q=dev", "https://id.jobstreet.com/job/123")).toBe(true);
+  it("does not match a search page to the posting it shows", () => {
+    expect(same("https://id.jobstreet.com/jobs?jobId=123&q=dev", "https://id.jobstreet.com/id/job/123")).toBe(false);
   });
 
   it("never matches a tab the extension cannot see", () => {
