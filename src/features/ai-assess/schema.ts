@@ -26,3 +26,11 @@ export const assessmentAnswerSchema = z.object({
 });
 
 export type AssessmentAnswer = z.infer<typeof assessmentAnswerSchema>;
+
+/** Display label and position (lowest first) of a verdict value, from the verdict field's options. */
+export function verdictLevel(value: string): { label: string; index: number; count: number } | null {
+  const options = verdictField?.options ?? [];
+  const index = options.findIndex((option) => option.value === value);
+  const option = options[index];
+  return option ? { label: option.label, index, count: options.length } : null;
+}

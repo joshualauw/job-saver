@@ -5,6 +5,7 @@ import { platforms } from "@/config/platforms";
 import { AppError, PageAccessError } from "@/core/errors";
 import { isSameJobPage } from "@/core/page-match";
 import type { PagePayload } from "@/core/page-payload";
+import { AssessmentCard } from "@/features/ai-assess/AssessmentCard";
 import { JobForm } from "@/features/job-form/JobForm";
 import { toFormInputs } from "@/features/job-form/form-values";
 import type { FormInputs } from "@/features/job-form/form-values";
@@ -289,6 +290,7 @@ export function App() {
                   onSave={saveJob}
                   onDiscard={discard}
                   saving={save.isPending}
+                  assessment={<AssessmentCard inputs={session.inputs} />}
                   saveDisabledReason={hasSheet ? null : "Add your Google spreadsheet in Settings to save."}
                 />
 

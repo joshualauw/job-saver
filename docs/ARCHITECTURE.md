@@ -64,12 +64,19 @@ ESLint + Prettier, pnpm.
 7. The sink maps values to columns by header name, looks the row up by job URL, then appends or
    updates it.
 
+When the user has set a CV or preferences, step 4 has a twin: a second OpenAI request, the
+assessor, runs at the same time and judges the same page against them. Its result is merged into
+the form values and shown in a card, so it is saved and restored with the rest of the job.
+
 ## Integrations
 
 **OpenAI.** Structured Outputs with a schema generated from the field list, so the model can only
 return known fields and enum values. Requests set `store: false`. The API key is stored locally and
 used from the browser, which is acceptable only because the extension is personal and unpublished.
-The model name is configuration, not code.
+The model name is configuration, not code. Extraction and the assessor share one request helper;
+the assessor's output is a separate schema (preferences are answered by number and code writes the
+sheet text), and its fields have their own source so extraction never sees them. The CV is read in
+the browser from a PDF or text file, kept as plain text in local storage, and sent only to OpenAI.
 
 **Google Sheets.** Auth through `chrome.identity` using the Chrome-signed-in account. Columns are
 matched by header name, so the sheet can be reordered or extended freely, and a missing header is

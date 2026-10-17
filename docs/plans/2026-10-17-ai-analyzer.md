@@ -1,6 +1,6 @@
 # AI analyzer
 
-Status: steps 1 to 3 done; steps 4 to 6 not started. Product context: [PRD.md](../PRD.md). Shape of the code:
+Status: all steps built; the manual checks with a real CV and key are still to do. Product context: [PRD.md](../PRD.md). Shape of the code:
 [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Goal
@@ -9,7 +9,7 @@ Besides filling the form, Analyze tells the user how strong a job is for them: h
 their CV, which of their preferences it meets, and an overall verdict. The result is shown in a
 bordered card under the form and saved to the sheet with the rest of the job.
 
-This is outside the V1 scope in the PRD; it exists because the user asked for it. Step 6 below adds
+This is outside the V1 scope in the PRD; it exists because the user asked for it. Step 5 below adds
 it to the PRD and roadmap.
 
 ## What the user gets
@@ -118,7 +118,16 @@ Decisions made while building it:
   hostile posting that tries to set the verdict.
 - Done when: the adapter returns validated values for a payload, a CV and preferences.
 
-### 4. Wire it into Analyze
+### 4. Wire it into Analyze, and show the card (done)
+
+Built as described. The assessment rides in the form values (the card is a view of them), so the
+draft restore needed no new storage; Analyze waits for both requests, so the card appears with the
+form. A failed assessment shows a warning and leaves the form usable.
+
+Built as one step so the result can be tried in Chrome as soon as it exists (on its own, the flow
+would only be visible as sheet columns). Two commits: the flow first, then the card.
+
+The flow:
 
 - In the Analyze flow, run the assessor in parallel with extraction when a CV or preferences exist;
   skip it otherwise. An assessor failure must not lose the extracted form: show the form and a
@@ -126,18 +135,22 @@ Decisions made while building it:
 - Existing saved job: return its stored assessment. Re-analyze runs the assessor again and replaces
   the stored one (a stale assessment is not worth keeping).
 - Make the saved draft remember the assessment so reopening the panel restores the card.
-- Tests: with and without a CV, assessor failure, existing row, re-analyze.
-- Done when: Analyze returns form values plus an assessment in the same result.
+- The assessment values travel with the rest of the form values to Save, as already set up in step 2.
+- Tests: with and without a CV, assessor failure, existing row, re-analyze, draft restore.
 
-### 5. The card
+The card:
 
 - A bordered card at the bottom of the form, below the Notes input (see Decisions): the verdict
   first (with a clear level indicator), then the CV fit text, then one row per preference with a
-  yes, no or not-stated mark. Narrow, single column, dark mode safe, using semantic tokens.
+  yes, no or not-stated mark. Narrow, single column, dark mode safe, using semantic tokens. Kept
+  simple at first; styling is adjusted after it has been seen.
 - Hidden when there is no assessment; a short loading state while it runs.
-- Done when: the card matches what is saved to the sheet.
+- Done when: Analyze returns form values plus an assessment in the same result, and the card
+  matches what is saved to the sheet.
 
-### 6. Docs, polish and release
+### 5. Docs, polish and release (done)
+
+The CLAUDE.md rule was extended in step 1. The version bump is still to do.
 
 - PRD: add the feature to product decisions and the roadmap; move "analyze with CV" out of any
   non-goal wording.

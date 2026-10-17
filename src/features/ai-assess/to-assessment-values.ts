@@ -9,7 +9,7 @@ const PREFERENCE_FIT_KEY = "preferenceFit" satisfies JobFieldKey;
 const VERDICT_KEY = "verdict" satisfies JobFieldKey;
 
 /** Every line starts with one of these, so the cell never begins with a character Sheets would evaluate. */
-const ANSWER_LABELS: Readonly<Record<PreferenceAnswer, string>> = {
+export const ANSWER_LABELS: Readonly<Record<PreferenceAnswer, string>> = {
   yes: "Yes",
   no: "No",
   not_stated: "Not stated",

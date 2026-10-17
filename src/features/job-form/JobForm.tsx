@@ -1,5 +1,6 @@
 import { Alert, Button, HStack, Stack, Text } from "@chakra-ui/react";
 import { useEffect } from "react";
+import type { ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import type { JobValues } from "@/config/fields";
@@ -22,9 +23,20 @@ interface Props {
   saving: boolean;
   /** Why saving is unavailable right now, if it is. */
   saveDisabledReason: string | null;
+  /** Shown under the fields, above the Save buttons. Supplied by the panel so features stay separate. */
+  assessment?: ReactNode;
 }
 
-export function JobForm({ initialInputs, missing, onChange, onSave, onDiscard, saving, saveDisabledReason }: Props) {
+export function JobForm({
+  initialInputs,
+  missing,
+  onChange,
+  onSave,
+  onDiscard,
+  saving,
+  saveDisabledReason,
+  assessment,
+}: Props) {
   const form = useForm<FormInputs>({ defaultValues: initialInputs, resolver: jobFormResolver, mode: "onBlur" });
 
   useEffect(() => {
@@ -60,6 +72,8 @@ export function JobForm({ initialInputs, missing, onChange, onSave, onDiscard, s
             notFound={missing.includes(field.key) && (current[field.key] ?? "").trim() === ""}
           />
         ))}
+
+        {assessment}
 
         {errorCount > 0 && (
           <Alert.Root status="warning">

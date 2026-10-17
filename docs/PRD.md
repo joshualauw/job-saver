@@ -31,8 +31,9 @@ product.
 
 1. Open a job posting and click Analyze in the side panel.
 2. AI reads the page and fills the tracked fields; unknowns are flagged, not guessed.
-3. Review and edit the values.
-4. Save: the job becomes a row in the sheet, or updates the existing row for that URL.
+3. If a CV or preferences are set, AI also judges how well the job fits the user, shown in a card.
+4. Review and edit the values.
+5. Save: the job becomes a row in the sheet, or updates the existing row for that URL.
 
 ## Product decisions
 
@@ -41,6 +42,13 @@ product.
 - **Re-saving a known URL** edits the existing row instead of adding a duplicate.
 - **Re-analyze** is an explicit action on a job already in the sheet: the AI runs again, but status
   and dates are kept and a saved value is only replaced when the AI found a new one.
+- **The fit assessment** is optional and has three parts: a short written CV fit, a yes, no or not
+  stated answer for each preference, and a verdict (low, medium, high or very high). The user's CV
+  (from a PDF or text file, kept to 6,000 characters) and preferences live only in the browser.
+  The judgement uses the page text the extractor sees, so a highlighted selection narrows it.
+  It is saved to the sheet with the job, is not edited in the form, and refreshes only on
+  Re-analyze, so a saved job keeps the assessment it was given. If it fails, the extracted form is
+  still usable.
 - **Last updated** is blank on a new row and set only when the status changes.
 - **One salary figure** is treated as the minimum; the maximum stays empty.
 - **Location type** defaults to onsite unless the posting says remote or hybrid.
@@ -57,12 +65,16 @@ product.
 6. Google Sheets: sign-in, append, duplicate lookup, update: done.
 7. Settings view and first-run onboarding: done.
 8. Polish: toasts, loading states, tab-change handling, dark mode: done.
+9. AI analyzer (CV and preferences, fit assessment card, saved with the job): built. Plan:
+   [plans/2026-10-17-ai-analyzer.md](plans/2026-10-17-ai-analyzer.md).
 
 Outstanding checks on finished work:
 
 - Try the polish in Chrome: success toasts, the "different page" notice after switching tabs, and
   every screen in dark mode (dark mode follows the system setting and has not been seen yet).
 - Run extraction against real postings with a real API key and tune the prompt if values are off.
+- Try the AI analyzer with a real CV: load a PDF, check the verdicts and tune the rubric if they
+  feel off.
 - Confirm in Chrome that Jobstreet pages are readable in a second tab without re-clicking the icon.
 
 ## Beyond V1
