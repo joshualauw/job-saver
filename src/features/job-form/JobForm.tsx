@@ -23,6 +23,8 @@ interface Props {
   saving: boolean;
   /** Why saving is unavailable right now, if it is. */
   saveDisabledReason: string | null;
+  /** Text of the submit button. */
+  saveLabel?: string;
   /** Shown under the fields, above the Save buttons. Supplied by the panel so features stay separate. */
   assessment?: ReactNode;
 }
@@ -35,6 +37,7 @@ export function JobForm({
   onDiscard,
   saving,
   saveDisabledReason,
+  saveLabel = "Save",
   assessment,
 }: Props) {
   const form = useForm<FormInputs>({ defaultValues: initialInputs, resolver: jobFormResolver, mode: "onBlur" });
@@ -94,7 +97,7 @@ export function JobForm({
 
         <HStack>
           <Button type="submit" flex="1" loading={saving} disabled={saveDisabledReason !== null}>
-            Save
+            {saveLabel}
           </Button>
           <Button type="button" variant="outline" onClick={onDiscard} disabled={saving}>
             Discard

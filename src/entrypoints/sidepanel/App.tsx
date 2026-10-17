@@ -79,6 +79,9 @@ export function App() {
   const session = analysis ?? restored;
   // Unknown until the first tab answer arrives, so no notice flashes on open.
   const isStale = session !== null && activeUrl !== undefined && !isSameJobPage(session.url, activeUrl, platforms);
+  // The form shows a saved row of the page the user is on: Analyze then asks the model again
+  // instead of returning the row, and Save replaces that row.
+  const replacing = session !== null && session.existing && !isStale;
 
   const { persist } = draft;
   const sessionUrl = session?.url;
@@ -196,12 +199,12 @@ export function App() {
             )}
 
             <Button
-              onClick={() => runAnalysis(false)}
+              onClick={() => runAnalysis(replacing)}
               loading={analyze.isPending}
               loadingText="Reading page and asking AI"
               disabled={!hasKey}
             >
-              {analyzeLabel(selectionLength)}
+              {analyzeLabel(selectionLength, replacing)}
             </Button>
 
             {analyze.isError && (
@@ -253,19 +256,6 @@ export function App() {
                       <Alert.Description>
                         Showing the saved row. Saving updates it instead of adding a new one.
                       </Alert.Description>
-                      {!isStale && hasKey && (
-                        <Button
-                          size="xs"
-                          variant="outline"
-                          alignSelf="flex-start"
-                          mt="2"
-                          onClick={() => runAnalysis(true)}
-                          loading={analyze.isPending}
-                          loadingText="Asking AI"
-                        >
-                          Re-analyze with AI
-                        </Button>
-                      )}
                     </Alert.Content>
                   </Alert.Root>
                 )}
@@ -290,6 +280,7 @@ export function App() {
                   onSave={saveJob}
                   onDiscard={discard}
                   saving={save.isPending}
+                  saveLabel={session.existing ? "Save & Update" : "Save"}
                   assessment={<AssessmentCard inputs={session.inputs} />}
                   saveDisabledReason={hasSheet ? null : "Add your Google spreadsheet in Settings to save."}
                 />

@@ -12,4 +12,10 @@ describe("analyzeLabel", () => {
     expect(analyzeLabel(40)).toBe("Analyze 40 selected characters");
     expect(analyzeLabel(1234)).toBe("Analyze 1,234 selected characters");
   });
+
+  it("says re-analyze when the job is already in the sheet", () => {
+    expect(analyzeLabel(0, true)).toBe("Re-analyze this page");
+    expect(analyzeLabel(39, true)).toBe("Re-analyze this page");
+    expect(analyzeLabel(1234, true)).toBe("Re-analyze 1,234 selected characters");
+  });
 });
