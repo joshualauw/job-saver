@@ -52,8 +52,8 @@ describe("buildSystemPrompt", () => {
     const system = buildSystemPrompt();
     expect(system).toMatch(/Split the posting's requirements into core and secondary/);
     expect(system).toMatch(/Judge the CV against the core requirements only/);
-    expect(system).toMatch(/Never count a secondary\s+item as a gap/);
-    expect(system).toMatch(/do not invent requirements the posting does not\s+state/);
+    expect(system).toMatch(/secondary items only briefly as extras, never as\s+shortcomings/);
+    expect(system).toMatch(/Never invent experience, skills, requirements/);
     expect(system).toMatch(/relocat/);
   });
 
