@@ -146,7 +146,7 @@ Each Analyze makes one OpenAI request, or two if you have set a CV or preference
 | Google sign-in fails                             | You are signed in to Chrome; your account is a test user; the client's Item ID matches the extension ID; you rebuilt after editing `.env.local`. |
 | "The sheet is missing these header columns"      | Add the named headers to row 1 of your tab. Test connection lists them.                                                                          |
 | "Job Saver doesn't have access to this site yet" | Click the **Allow Job Saver on ...** button under the message.                                                                                   |
-| Values are wrong or empty on another site        | Highlight the job description and Analyze again, or add dedicated support for that site (see the docs below).                                    |
+| Values are wrong or empty on another site        | Highlight the job description and Analyze again, or add dedicated support for that site (see ARCHITECTURE.md).                                    |
 
 ## Development
 
@@ -159,5 +159,4 @@ pnpm build
 ```
 
 - [ARCHITECTURE.md](ARCHITECTURE.md): how it is built.
-- [docs](docs): product decisions and feature plans, what it is for and where it is going.
 - [CLAUDE.md](CLAUDE.md): the rules the code follows, written for Claude Code but readable by anyone.

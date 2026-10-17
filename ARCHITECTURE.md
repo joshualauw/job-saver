@@ -1,8 +1,7 @@
 # Architecture
 
-How Job Saver is shaped and why. What it is for and where it is heading: the product decisions in
-[docs](docs). Rules the code follows: [CLAUDE.md](CLAUDE.md). This file records structure and decisions; the details
-live in the code.
+How Job Saver is shaped and why. Rules the code follows: [CLAUDE.md](CLAUDE.md). This file
+records structure and decisions; the details live in the code.
 
 ## At a glance
 
@@ -83,7 +82,6 @@ flowchart TD
 | `src/theme`                 | Chakra configuration, dark mode and toasts.                                                                  |
 | `tests`                     | Fixtures (saved pages), helpers, and checks that keep the README and sheet template in sync.                 |
 | `templates`                 | The blank Google Sheet template.                                                                             |
-| `docs`                      | This file, the product doc, and plans written while building features.                                       |
 
 ## Security and privacy
 

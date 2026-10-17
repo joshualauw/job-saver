@@ -3,8 +3,7 @@
 Personal Chrome extension (MV3 side panel): AI extracts job fields from the current page, the
 user reviews them, Save writes a row to a Google Sheet.
 
-- What and why: product decisions live in [docs](docs). How it is shaped:
-  [ARCHITECTURE.md](ARCHITECTURE.md).
+- What it is and how it is shaped: [ARCHITECTURE.md](ARCHITECTURE.md).
   Read the architecture before cross-feature work. If a doc and the code disagree, the code wins:
   say so and fix the doc.
 - **Docs describe intent, not code.** Never paste code, field lists, prompt text, selectors or
@@ -56,6 +55,6 @@ user reviews them, Save writes a row to a Google Sheet.
 ## Workflow
 
 - pnpm only. Ask before adding a dependency; prefer the platform and existing stack.
-- Keep changes to what was asked. Anything outside V1 scope needs the user's say-so.
+- Keep changes to what was asked. Anything beyond that needs the user's say-so.
 - Conventional commits, small and focused.
 - The user creates the Google Cloud OAuth client and the sheet; don't automate that.
