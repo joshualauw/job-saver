@@ -113,7 +113,7 @@ Settings.
 1. Open a job posting and click **Analyze**.
 2. Check the form. "Not found" badges show what the AI couldn't determine.
 3. Click **Save**. Open the same job later and the panel shows the saved row, with a
-   **Re-analyze** option that refreshes the AI fields while keeping your status and dates.
+   **Re-analyze** option that refreshes the AI fields and leaves your own columns alone.
 
 On a site without dedicated support, Analyze first asks you to allow Job Saver on that site (one
 click, per site). Results are better if you highlight just the job description first.

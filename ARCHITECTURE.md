@@ -55,8 +55,8 @@ flowchart TD
   text; the verdict is an enum from the field config; anything code can know is never left to the
   model. Unknown means `null`, not a guess.
 - **A spreadsheet is the database.** Columns are matched by header name, so you can reorder the
-  sheet or add your own columns. Rows are identified by job URL, which gives edit mode and
-  status-change tracking. Updates write only the columns the app owns, new jobs go into the first
+  sheet or add your own columns, such as a status you maintain yourself. Rows are identified by job
+  URL, which gives edit mode. Updates write only the columns the app owns, new jobs go into the first
   empty formatted row so dropdowns survive, and sheet text is guarded against formula injection.
 - **Permissions that fit a side panel.** The panel outlives tab switches but `activeTab` does not,
   so supported sites get static host access. Any other site is allowed one at a time through an
@@ -75,7 +75,7 @@ flowchart TD
 | `src/features/page-extract` | Turns a page into the payload.                                                                               |
 | `src/features/ai-extract`   | The extractor: prompt, OpenAI call, merge with code-owned values.                                            |
 | `src/features/ai-assess`    | The assessor and the fit card.                                                                               |
-| `src/features/job-form`     | The review form, validation, draft persistence, status and date rules.                                       |
+| `src/features/job-form`     | The review form, validation and draft persistence.                                                           |
 | `src/features/sheet-sync`   | Google sign-in, the Sheets client and the sink.                                                              |
 | `src/features/settings`     | API key, sheet, CV and preferences; first-run setup.                                                         |
 | `src/lib`                   | Thin wrappers around the browser, storage and OpenAI, plus small utilities.                                  |
