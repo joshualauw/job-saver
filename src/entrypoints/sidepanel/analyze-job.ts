@@ -68,7 +68,7 @@ export async function analyzeJob(
   if (settings.spreadsheetId && source) {
     const sink = deps.createSink(settings.spreadsheetId, settings.sheetTab ?? appConfig.defaultSheetTab);
     saved = await sink.find(source.jobUrl);
-    // A job that is already saved keeps its real status: no AI draft, no OpenAI cost.
+    // A job that is already saved keeps its saved values: no AI draft, no OpenAI cost.
     if (saved && !refresh) {
       return { payload, values: saved.values, missing: [], existing: true, assessmentError: null };
     }
@@ -87,12 +87,7 @@ export async function analyzeJob(
 
   const llm = await deps.createExtractor({ apiKey, model }).extract(payload);
 
-  const draft = buildJobDraft({
-    source,
-    llm,
-    status: appConfig.defaultStatus,
-    ...(saved && { saved: saved.values }),
-  });
+  const draft = buildJobDraft({ source, llm, ...(saved && { saved: saved.values }) });
 
   const assessment = assessing ? await assessing : null;
   // A saved assessment survives when none was attempted or the attempt failed.

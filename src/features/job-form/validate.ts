@@ -20,8 +20,6 @@ function messageFor(issue: ZodIssue, key: string, typed: Readonly<Record<string,
       return field?.type === "number" ? "Must be a number" : "Required";
     case "too_small":
       return field?.type === "number" ? "Must be 0 or more" : "Required";
-    case "invalid_format":
-      return field?.type === "date" ? "Use the format YYYY-MM-DD" : issue.message;
     case "invalid_value":
       return "Pick one of the options";
     case "custom":

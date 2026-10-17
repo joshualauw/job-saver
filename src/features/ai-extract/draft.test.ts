@@ -77,15 +77,11 @@ describe.each(["1", "2", "3"])("buildJobDraft for Jobstreet fixture %s", (name) 
   const { values, missing } = buildJobDraft({
     source: sourceFor(name),
     llm: answerFor(name),
-    status: "saved",
   });
 
   it("fills code-owned fields from the URL and defaults", () => {
     expect(values.platform).toBe("Jobstreet");
     expect(values.jobUrl).toBe(JOB_URLS[name]);
-    expect(values.status).toBe("saved");
-    expect(values.appliedAt).toBeNull();
-    expect(values.lastUpdatedAt).toBeNull();
   });
 
   it("keeps the model's values and normalises skills", () => {
@@ -108,7 +104,7 @@ describe("buildJobDraft details", () => {
   const source = { platform: "Jobstreet", jobUrl: "https://id.jobstreet.com/id/job/1" };
 
   it("leaves the assessment empty for a new job and never flags it as missing", () => {
-    const { values, missing } = buildJobDraft({ source, llm: answerFor("1"), status: "saved" });
+    const { values, missing } = buildJobDraft({ source, llm: answerFor("1") });
     expect(values.cvFit).toBeNull();
     expect(values.preferenceFit).toBeNull();
     expect(values.verdict).toBeNull();
@@ -119,7 +115,6 @@ describe("buildJobDraft details", () => {
     const { values } = buildJobDraft({
       source,
       llm: { ...answerFor("1"), skills: ["Node.js", " TypeScript ", "node.js"] },
-      status: "saved",
     });
     expect(values.skills).toEqual(["node.js", "typescript"]);
   });
@@ -128,18 +123,15 @@ describe("buildJobDraft details", () => {
     const { values, missing } = buildJobDraft({
       source,
       llm: { ...answerFor("3"), company: "  ", address: null },
-      status: "saved",
     });
     expect(values.company).toBeNull();
     expect(missing).toContain("company");
     expect(missing).toContain("address");
   });
 
-  it("does not count an empty skills list or user-owned dates as missing", () => {
-    const { missing } = buildJobDraft({ source, llm: { ...answerFor("3"), skills: [] }, status: "saved" });
+  it("does not count an empty skills list as missing", () => {
+    const { missing } = buildJobDraft({ source, llm: { ...answerFor("3"), skills: [] } });
     expect(missing).not.toContain("skills");
-    expect(missing).not.toContain("appliedAt");
-    expect(missing).not.toContain("lastUpdatedAt");
   });
 
   it("never lets the model set code-owned fields", () => {
@@ -147,14 +139,12 @@ describe("buildJobDraft details", () => {
       ...answerFor("1"),
       platform: "Evil",
       jobUrl: "https://evil.example",
-      status: "offer",
-      appliedAt: "2020-01-01",
+      verdict: "very_high",
     } as unknown as LlmJobValues;
-    const { values } = buildJobDraft({ source, llm: hostile, status: "saved" });
+    const { values } = buildJobDraft({ source, llm: hostile });
     expect(values.platform).toBe("Jobstreet");
     expect(values.jobUrl).toBe(source.jobUrl);
-    expect(values.status).toBe("saved");
-    expect(values.appliedAt).toBeNull();
+    expect(values.verdict).toBeNull();
   });
 
   describe("refreshing a saved row", () => {
@@ -166,23 +156,17 @@ describe("buildJobDraft details", () => {
       summary: "Old summary.",
       platform: "Jobstreet",
       jobUrl: source.jobUrl,
-      status: "interviewing",
-      appliedAt: 46000,
-      lastUpdatedAt: 46010,
     };
 
-    it("keeps the user's fields and dates, and takes new values for AI fields", () => {
-      const { values } = buildJobDraft({ source, llm: answerFor("1"), status: "saved", saved });
-      expect(values.status).toBe("interviewing");
-      expect(values.appliedAt).toBe(46000);
-      expect(values.lastUpdatedAt).toBe(46010);
+    it("takes new values for AI fields", () => {
+      const { values } = buildJobDraft({ source, llm: answerFor("1"), saved });
       expect(values.company).toBe(answerFor("1").company);
       expect(values.summary).toBe(answerFor("1").summary);
     });
 
     it("keeps a saved value when the model found nothing for it", () => {
       const llm = { ...answerFor("3"), address: null, skills: [], summary: "  " };
-      const { values, missing } = buildJobDraft({ source, llm, status: "saved", saved });
+      const { values, missing } = buildJobDraft({ source, llm, saved });
       expect(values.skills).toEqual(["php"]);
       expect(values.summary).toBe("Old summary.");
       expect(missing).not.toContain("summary");
@@ -192,7 +176,6 @@ describe("buildJobDraft details", () => {
       const { values } = buildJobDraft({
         source,
         llm: answerFor("1"),
-        status: "saved",
         saved: { ...saved, cvFit: "Good match.", verdict: "high" },
       });
       expect(values.cvFit).toBe("Good match.");
@@ -203,34 +186,31 @@ describe("buildJobDraft details", () => {
       const { values, missing } = buildJobDraft({
         source,
         llm: { ...answerFor("3"), notes: null },
-        status: "saved",
         saved,
       });
       expect(values.notes).toBeNull();
       expect(missing).toContain("notes");
     });
 
-    it("ignores code- or user-owned values from the model and takes platform and URL from the source", () => {
-      const hostile = { ...answerFor("1"), status: "offer", jobUrl: "https://evil.example" } as unknown as LlmJobValues;
-      const { values } = buildJobDraft({ source, llm: hostile, status: "saved", saved });
-      expect(values.status).toBe("interviewing");
+    it("ignores code-owned values from the model and takes platform and URL from the source", () => {
+      const hostile = { ...answerFor("1"), verdict: "very_high", jobUrl: "https://evil.example" } as unknown as LlmJobValues;
+      const { values } = buildJobDraft({ source, llm: hostile, saved });
       expect(values.jobUrl).toBe(source.jobUrl);
+      expect(values.verdict).toBeNull();
     });
 
-    it("falls back to the default status when the saved row has none", () => {
+    it("takes the model.s values when the saved row has almost nothing", () => {
       const { values } = buildJobDraft({
         source,
         llm: answerFor("1"),
-        status: "saved",
         saved: { jobUrl: source.jobUrl },
       });
-      expect(values.status).toBe("saved");
       expect(values.skills).toEqual(["ai coding agents", "claude code"]);
     });
   });
 
   it("leaves platform and jobUrl empty (and flagged) when the URL is unusable", () => {
-    const { values, missing } = buildJobDraft({ source: null, llm: answerFor("1"), status: "saved" });
+    const { values, missing } = buildJobDraft({ source: null, llm: answerFor("1") });
     expect(values.platform).toBeNull();
     expect(values.jobUrl).toBeNull();
     expect(missing).toEqual(expect.arrayContaining(["platform", "jobUrl"]));

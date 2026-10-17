@@ -5,6 +5,7 @@ import { fields } from "@/config/fields";
 import { MissingColumnsError, SchemaError } from "./errors";
 import { asSheetReturns } from "../../tests/helpers/as-sheet-returns";
 import { asText, columnIndexOf, fromSheetRow, toSheetCells, toSheetRow } from "./row-mapping";
+import type { FieldDef } from "./types";
 
 const header = fields.map((field) => field.column);
 
@@ -16,9 +17,6 @@ const values = {
   locationType: "remote",
   platform: "Jobstreet",
   jobUrl: "https://id.jobstreet.com/id/job/12345678",
-  status: "applied",
-  appliedAt: "2026-10-15",
-  lastUpdatedAt: null,
   minYoe: 2,
   skills: ["node.js", "postgres"],
   salaryPeriod: "month",
@@ -52,9 +50,6 @@ describe("toSheetRow", () => {
       "Remote",
       "'Jobstreet",
       "'https://id.jobstreet.com/id/job/12345678",
-      "Applied",
-      "2026-10-15",
-      "",
       2,
       "'node.js, postgres",
       "Month",
@@ -134,9 +129,8 @@ describe("toSheetRow", () => {
   it("rejects values that cannot be represented", () => {
     expect(() => toSheetRow(fields, { ...values, skills: "node.js" }, header)).toThrow(SchemaError);
     expect(() => toSheetRow(fields, { ...values, skills: [1] }, header)).toThrow(SchemaError);
-    expect(() => toSheetRow(fields, { ...values, status: "dreaming" }, header)).toThrow(SchemaError);
+    expect(() => toSheetRow(fields, { ...values, contractType: "dreaming" }, header)).toThrow(SchemaError);
     expect(() => toSheetRow(fields, { ...values, minSalary: "8jt" }, header)).toThrow(SchemaError);
-    expect(() => toSheetRow(fields, { ...values, appliedAt: "15/10/2026" }, header)).toThrow(SchemaError);
   });
 });
 
@@ -159,30 +153,44 @@ describe("fromSheetRow", () => {
     expect(fromSheetRow(fields, row, header)["skills"]).toEqual(["node.js", "postgres"]);
   });
 
-  it("parses formatted numbers and Sheets serial dates", () => {
+  it("parses formatted numbers", () => {
     const row = Array(header.length).fill("") as (string | number)[];
     row[header.indexOf("Min Salary")] = "8,000,000";
     row[header.indexOf("Max Salary")] = 12_000_000;
-    row[header.indexOf("Applied At")] = 46_310; // 2026-10-15
     const parsed = fromSheetRow(fields, row, header);
     expect(parsed["minSalary"]).toBe(8_000_000);
     expect(parsed["maxSalary"]).toBe(12_000_000);
-    expect(parsed["appliedAt"]).toBe("2026-10-15");
   });
 
-  it("returns null for unparseable numbers, dates, and unknown enum labels", () => {
+  it("returns null for unparseable numbers and unknown enum labels", () => {
     const row = Array(header.length).fill("") as string[];
     row[header.indexOf("Min Salary")] = "negotiable";
-    row[header.indexOf("Applied At")] = "last week";
-    row[header.indexOf("Status")] = "Dreaming";
+    row[header.indexOf("Contract Type")] = "Dreaming";
     const parsed = fromSheetRow(fields, row, header);
     expect(parsed["minSalary"]).toBeNull();
-    expect(parsed["appliedAt"]).toBeNull();
-    expect(parsed["status"]).toBeNull();
+    expect(parsed["contractType"]).toBeNull();
   });
 
   it("throws MissingColumnsError when the header lacks a configured column", () => {
     expect(() => fromSheetRow(fields, [], ["Company"])).toThrow(MissingColumnsError);
+  });
+});
+
+// No configured field is a date today, but the mapping supports them.
+describe("date columns", () => {
+  const dated = [
+    { key: "appliedOn", column: "Applied On", label: "Applied on", type: "date", source: "ai", nullable: true },
+  ] as const satisfies readonly FieldDef[];
+  const datedHeader = ["Applied On"];
+
+  it("writes an ISO date as is and rejects other formats", () => {
+    expect(toSheetRow(dated, { appliedOn: "2026-10-15" }, datedHeader)).toEqual(["2026-10-15"]);
+    expect(() => toSheetRow(dated, { appliedOn: "15/10/2026" }, datedHeader)).toThrow(SchemaError);
+  });
+
+  it("reads Sheets serial dates and returns null for unparseable ones", () => {
+    expect(fromSheetRow(dated, asSheetReturns([46_310]), datedHeader)["appliedOn"]).toBe("2026-10-15");
+    expect(fromSheetRow(dated, ["last week"], datedHeader)["appliedOn"]).toBeNull();
   });
 });
 

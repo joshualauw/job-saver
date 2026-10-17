@@ -25,9 +25,6 @@ function values(overrides: Record<string, unknown> = {}): Record<string, unknown
     locationType: "onsite",
     platform: "Jobstreet",
     jobUrl: URL_A,
-    status: "applied",
-    appliedAt: "2026-10-10",
-    lastUpdatedAt: null,
     minYoe: null,
     skills: ["node.js"],
     salaryPeriod: "hour",
@@ -55,7 +52,7 @@ function fakeClient(tabValues: unknown[][] | undefined, appendResponse: unknown 
 
 describe("sheets sink: find", () => {
   it("reads the whole tab unformatted and returns the matching row with its decoded values", async () => {
-    const { sink, get } = fakeClient([header, rowFor({ jobUrl: URL_B }), rowFor({ status: "interviewing" })]);
+    const { sink, get } = fakeClient([header, rowFor({ jobUrl: URL_B }), rowFor({ contractType: "contract" })]);
 
     const found = await sink.find(URL_A);
 
@@ -63,7 +60,7 @@ describe("sheets sink: find", () => {
       `values/${encodeURIComponent("'Jobs'")}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=SERIAL_NUMBER`,
     );
     expect(found?.row).toBe(3);
-    expect(found?.values["status"]).toBe("interviewing");
+    expect(found?.values["contractType"]).toBe("contract");
     expect(found?.values["skills"]).toEqual(["node.js"]);
   });
 
@@ -96,7 +93,7 @@ describe("sheets sink: save a new job", () => {
     expect(path).toBe("values:batchUpdate");
     expect(body.valueInputOption).toBe("USER_ENTERED");
     expect(cellWritten(body, "Company", 3)).toBe("'Ryvo");
-    expect(cellWritten(body, "Status", 3)).toBe("Applied");
+    expect(cellWritten(body, "Contract Type", 3)).toBe("Full-time");
   });
 
   it("uses row 2 on a tab with only a header", async () => {
@@ -157,9 +154,9 @@ describe("sheets sink: save a new job", () => {
 
 describe("sheets sink: save over an existing job", () => {
   it("updates only the cells the app owns, so user columns are untouched", async () => {
-    const { sink, post } = fakeClient([header, rowFor({ jobUrl: URL_B }), rowFor({ status: "saved" })]);
+    const { sink, post } = fakeClient([header, rowFor({ jobUrl: URL_B }), rowFor({ contractType: "contract" })]);
 
-    const result = await sink.save(values({ status: "applied" }));
+    const result = await sink.save(values({ contractType: "part_time" }));
 
     expect(result).toEqual({ action: "updated", row: 3 });
     const [path, body] = post.mock.calls[0] as [

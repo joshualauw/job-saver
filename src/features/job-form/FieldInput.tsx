@@ -77,8 +77,6 @@ function FieldControl({ field, register, control }: Pick<Props, "field" | "regis
       return <Textarea {...register(field.key)} size="sm" rows={6} />;
     case "number":
       return <Input {...register(field.key)} size="sm" type="number" inputMode="decimal" min={0} step="any" />;
-    case "date":
-      return <Input {...register(field.key)} size="sm" type="date" readOnly={readOnly} />;
     case "stringList":
       return <Input {...register(field.key)} size="sm" placeholder="comma, separated" />;
     default:

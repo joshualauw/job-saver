@@ -10,7 +10,6 @@ const draft = {
   jobTitle: "Senior Full-Stack Developer",
   platform: "Jobstreet",
   jobUrl: "https://id.jobstreet.com/id/job/94811596",
-  status: "saved",
   skills: ["node.js"],
   cvFit: "Good match.",
   preferenceFit: "Yes: Remote work",

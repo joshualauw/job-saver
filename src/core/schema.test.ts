@@ -14,9 +14,6 @@ const validJob: JobValues = {
   locationType: "hybrid",
   platform: "Jobstreet",
   jobUrl: "https://id.jobstreet.com/id/job/12345678",
-  status: "saved",
-  appliedAt: null,
-  lastUpdatedAt: null,
   minYoe: 3,
   skills: ["node.js", "postgres"],
   salaryPeriod: "month",
@@ -46,13 +43,16 @@ describe("buildFormSchema", () => {
   });
 
   it("rejects values outside an enum", () => {
-    expect(jobFormSchema.safeParse({ ...validJob, status: "dreaming" }).success).toBe(false);
+    expect(jobFormSchema.safeParse({ ...validJob, contractType: "dreaming" }).success).toBe(false);
   });
 
   it("rejects malformed and impossible dates", () => {
-    expect(jobFormSchema.safeParse({ ...validJob, appliedAt: "15/10/2026" }).success).toBe(false);
-    expect(jobFormSchema.safeParse({ ...validJob, appliedAt: "2026-02-31" }).success).toBe(false);
-    expect(jobFormSchema.safeParse({ ...validJob, appliedAt: "2026-10-15" }).success).toBe(true);
+    const schema = buildFormSchema([
+      { key: "appliedOn", column: "Applied On", label: "Applied on", type: "date", source: "ai", nullable: true },
+    ] as const);
+    expect(schema.safeParse({ appliedOn: "15/10/2026" }).success).toBe(false);
+    expect(schema.safeParse({ appliedOn: "2026-02-31" }).success).toBe(false);
+    expect(schema.safeParse({ appliedOn: "2026-10-15" }).success).toBe(true);
   });
 
   it("rejects negative salaries", () => {

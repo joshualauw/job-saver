@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { appConfig } from "./app";
 import { fields } from "./fields";
 
 describe("field config", () => {
@@ -39,11 +38,5 @@ describe("field config", () => {
         expect("nullable" in field).toBe(false);
       }
     }
-  });
-
-  it("uses a default status that exists in the status options", () => {
-    const status = fields.find((field) => field.key === "status");
-    const values = status && "options" in status ? status.options.map((o) => o.value) : [];
-    expect(values).toContain(appConfig.defaultStatus);
   });
 });

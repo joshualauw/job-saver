@@ -15,12 +15,9 @@ export interface BuildDraftInput {
   /** Derived from the page URL; `null` when the URL is not usable. */
   readonly source: JobSource | null;
   readonly llm: LlmJobValues;
-  /** Status for a new row (an option value of the `status` field). */
-  readonly status: JobValues["status"];
   /**
    * Values of the row already in the sheet, when refreshing it. They are the base: the model only
-   * replaces AI-sourced fields it actually found a value for, so nothing is blanked and the
-   * user's own fields (status, dates) are kept.
+   * replaces AI-sourced fields it actually found a value for, so nothing is blanked.
    */
   readonly saved?: Readonly<Record<string, unknown>>;
 }
@@ -33,10 +30,7 @@ export interface BuildDraftResult {
 
 const PLATFORM_KEY = "platform" satisfies JobFieldKey;
 const JOB_URL_KEY = "jobUrl" satisfies JobFieldKey;
-const STATUS_KEY = "status" satisfies JobFieldKey;
 const SKILLS_KEY = "skills" satisfies JobFieldKey;
-const APPLIED_AT_KEY = "appliedAt" satisfies JobFieldKey;
-const LAST_UPDATED_KEY = "lastUpdatedAt" satisfies JobFieldKey;
 
 function isBlank(value: unknown): boolean {
   return value === null || value === undefined || (typeof value === "string" && value.trim() === "");
@@ -45,10 +39,10 @@ function isBlank(value: unknown): boolean {
 const AI_KEYS: ReadonlySet<string> = new Set(fields.filter((field) => field.source === "ai").map((field) => field.key));
 
 /**
- * Merges what code knows (platform, clean URL, default status) with what the model returned.
- * Code-owned fields always win, and the model never sets user-owned fields.
+ * Merges what code knows (platform, clean URL) with what the model returned.
+ * Code-owned fields always win, and the model never sets them.
  */
-export function buildJobDraft({ source, llm, status, saved }: BuildDraftInput): BuildDraftResult {
+export function buildJobDraft({ source, llm, saved }: BuildDraftInput): BuildDraftResult {
   const merged: Record<string, unknown> = { ...saved };
 
   for (const [key, value] of Object.entries({ ...llm, [SKILLS_KEY]: normalizeList(llm.skills) })) {
@@ -59,12 +53,7 @@ export function buildJobDraft({ source, llm, status, saved }: BuildDraftInput): 
 
   merged[PLATFORM_KEY] = source?.platform ?? null;
   merged[JOB_URL_KEY] = source?.jobUrl ?? null;
-  if (saved) {
-    if (isBlank(merged[STATUS_KEY])) merged[STATUS_KEY] = status;
-    if (!Array.isArray(merged[SKILLS_KEY])) merged[SKILLS_KEY] = [];
-  } else {
-    Object.assign(merged, { [STATUS_KEY]: status, [APPLIED_AT_KEY]: null, [LAST_UPDATED_KEY]: null });
-  }
+  if (saved && !Array.isArray(merged[SKILLS_KEY])) merged[SKILLS_KEY] = [];
 
   const missing: JobFieldKey[] = [];
   for (const field of fields) {

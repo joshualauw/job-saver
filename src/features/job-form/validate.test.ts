@@ -12,9 +12,6 @@ const valid: FormInputs = toFormInputs({
   locationType: "onsite",
   platform: "Jobstreet",
   jobUrl: "https://id.jobstreet.com/id/job/94811596",
-  status: "saved",
-  appliedAt: null,
-  lastUpdatedAt: null,
   minYoe: null,
   skills: ["node.js"],
   salaryPeriod: "hour",
@@ -43,9 +40,9 @@ describe("validateInputs", () => {
   });
 
   it("reports blank required fields as Required", () => {
-    expect(errorsOf({ ...valid, company: "  ", status: "" })).toEqual({
+    expect(errorsOf({ ...valid, company: "  ", jobTitle: "" })).toEqual({
       company: "Required",
-      status: "Required",
+      jobTitle: "Required",
     });
   });
 
@@ -54,9 +51,8 @@ describe("validateInputs", () => {
     expect(errorsOf({ ...valid, minSalary: "8 juta" })["minSalary"]).toBe("Must be a number");
   });
 
-  it("explains date and enum problems", () => {
-    expect(errorsOf({ ...valid, appliedAt: "15/10/2026" })["appliedAt"]).toBe("Use the format YYYY-MM-DD");
-    expect(errorsOf({ ...valid, status: "dreaming" })["status"]).toBe("Pick one of the options");
+  it("explains enum problems", () => {
+    expect(errorsOf({ ...valid, contractType: "dreaming" })["contractType"]).toBe("Pick one of the options");
   });
 
   it("gives one message per field", () => {

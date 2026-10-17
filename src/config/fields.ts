@@ -17,16 +17,6 @@ const locationTypes = [
   { value: "remote", label: "Remote" },
 ] as const;
 
-const statuses = [
-  { value: "saved", label: "Saved" },
-  { value: "applied", label: "Applied" },
-  { value: "interviewing", label: "Interviewing" },
-  { value: "offer", label: "Offer" },
-  { value: "rejected", label: "Rejected" },
-  { value: "withdrawn", label: "Withdrawn" },
-  { value: "ghosted", label: "Ghosted" },
-] as const;
-
 const verdicts = [
   { value: "low", label: "Low" },
   { value: "medium", label: "Medium" },
@@ -109,31 +99,6 @@ export const fields = [
     type: "string",
     source: "derived",
     required: true,
-  },
-  {
-    key: "status",
-    column: "Status",
-    label: "Status",
-    type: "enum",
-    source: "user",
-    required: true,
-    options: statuses,
-  },
-  {
-    key: "appliedAt",
-    column: "Applied At",
-    label: "Applied at",
-    type: "date",
-    source: "user",
-    nullable: true,
-  },
-  {
-    key: "lastUpdatedAt",
-    column: "Last Updated At",
-    label: "Last updated at",
-    type: "date",
-    source: "derived",
-    nullable: true,
   },
   {
     key: "minYoe",

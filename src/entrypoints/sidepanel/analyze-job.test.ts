@@ -38,7 +38,7 @@ const answer: LlmJobValues = {
 
 const saved: SavedJob = {
   row: 7,
-  values: { company: "Ryvo", jobUrl: CLEAN_URL, status: "interviewing", skills: ["node.js"] },
+  values: { company: "Ryvo", jobUrl: CLEAN_URL, summary: "Old summary.", skills: ["node.js"] },
 };
 
 const assessment: AssessmentValues = {
@@ -85,7 +85,6 @@ describe("analyzeJob", () => {
     expect(result.existing).toBe(false);
     expect(result.values.platform).toBe("Jobstreet");
     expect(result.values.jobUrl).toBe(CLEAN_URL);
-    expect(result.values.status).toBe(appConfig.defaultStatus);
     expect(result.values.skills).toEqual(["node.js"]);
     expect(result.missing).toContain("address");
   });
@@ -142,11 +141,10 @@ describe("analyzeJob with a spreadsheet", () => {
     expect(createExtractor).not.toHaveBeenCalled();
     expect(result.existing).toBe(true);
     expect(result.values).toBe(saved.values);
-    expect(result.values.status).toBe("interviewing");
     expect(result.missing).toEqual([]);
   });
 
-  it("with refresh, asks the model but keeps the saved status and stays an update", async () => {
+  it("with refresh, asks the model and stays an update", async () => {
     const { all, find, extract } = deps({ readSettings: withSheet });
     find.mockResolvedValue(saved);
 
@@ -154,7 +152,6 @@ describe("analyzeJob with a spreadsheet", () => {
 
     expect(extract).toHaveBeenCalledOnce();
     expect(result.existing).toBe(true);
-    expect(result.values.status).toBe("interviewing");
     expect(result.values.summary).toBe("Builds software.");
     expect(result.values.jobUrl).toBe(CLEAN_URL);
   });
@@ -166,7 +163,6 @@ describe("analyzeJob with a spreadsheet", () => {
 
     expect(extract).toHaveBeenCalledOnce();
     expect(result.existing).toBe(false);
-    expect(result.values.status).toBe(appConfig.defaultStatus);
   });
 
   it("surfaces a lookup failure instead of silently calling the model", async () => {
@@ -282,7 +278,7 @@ describe("analyzeJob with the assessor", () => {
     const result = await analyzeJob({ refresh: true }, all);
 
     expect(result.existing).toBe(true);
-    expect(result.values).toMatchObject({ status: "interviewing", ...assessment });
+    expect(result.values).toMatchObject(assessment);
   });
 
   it("with refresh, keeps the stored assessment when none is attempted or the attempt fails", async () => {
