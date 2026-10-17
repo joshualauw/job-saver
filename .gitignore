@@ -4,6 +4,7 @@ node_modules
 coverage
 .env
 .env.*
+!.env.example
 *.log
 .claude/settings.local.json
 web-ext.config.ts
