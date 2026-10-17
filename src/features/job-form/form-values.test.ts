@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { fields } from "@/config/fields";
 
-import { fromFormInputs, toFormInputs } from "./form-values";
+import { formFields, fromFormInputs, toFormInputs } from "./form-values";
 
 const draft = {
   company: "Ryvo",
@@ -23,6 +23,9 @@ const draft = {
   maxSalary: null,
   summary: "Builds software.",
   notes: null,
+  cvFit: "Good match.",
+  preferenceFit: "Yes: Remote work\nNot stated: Salary above 10M",
+  verdict: "high",
 };
 
 describe("toFormInputs", () => {
@@ -37,6 +40,22 @@ describe("toFormInputs", () => {
 
   it("treats missing keys as empty", () => {
     expect(toFormInputs({})["company"]).toBe("");
+  });
+});
+
+describe("assessment fields in the form", () => {
+  it("are not shown as inputs", () => {
+    const keys = formFields.map((field) => field.key);
+    expect(keys).not.toContain("verdict");
+    expect(keys).not.toContain("cvFit");
+    expect(keys).not.toContain("preferenceFit");
+    expect(keys).toContain("notes");
+  });
+
+  it("still travel through the form state and out to Save", () => {
+    const values = fromFormInputs(toFormInputs(draft));
+    expect(values["verdict"]).toBe("high");
+    expect(values["preferenceFit"]).toBe("Yes: Remote work\nNot stated: Salary above 10M");
   });
 });
 

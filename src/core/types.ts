@@ -1,6 +1,10 @@
 import type { PagePayload } from "./page-payload";
 
-export type FieldSource = "ai" | "derived" | "user";
+/**
+ * Who is responsible for a value. `assessment` values come from a separate AI judgement of the job
+ * against the user (never from extraction); they are shown in a card, not as form inputs.
+ */
+export type FieldSource = "ai" | "derived" | "user" | "assessment";
 /** `stringList` is a list of lowercase strings (e.g. skills); one comma-separated sheet cell. */
 export type FieldType = "string" | "text" | "number" | "date" | "enum" | "stringList";
 

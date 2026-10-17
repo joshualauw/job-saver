@@ -2,12 +2,12 @@ import { Alert, Button, HStack, Stack, Text } from "@chakra-ui/react";
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
-import { fields } from "@/config/fields";
 import type { JobValues } from "@/config/fields";
 
 import { FieldInput } from "./FieldInput";
 import { applyStatusRules, todayIso } from "./status-rules";
 import { jobFormResolver, validateInputs } from "./validate";
+import { formFields } from "./form-values";
 import type { FormInputs } from "./form-values";
 
 interface Props {
@@ -50,7 +50,7 @@ export function JobForm({ initialInputs, missing, onChange, onSave, onDiscard, s
   return (
     <form onSubmit={submit} noValidate>
       <Stack gap="3">
-        {fields.map((field) => (
+        {formFields.map((field) => (
           <FieldInput
             key={field.key}
             field={field}

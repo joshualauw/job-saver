@@ -107,6 +107,14 @@ describe.each(["1", "2", "3"])("buildJobDraft for Jobstreet fixture %s", (name) 
 describe("buildJobDraft details", () => {
   const source = { platform: "Jobstreet", jobUrl: "https://id.jobstreet.com/id/job/1" };
 
+  it("leaves the assessment empty for a new job and never flags it as missing", () => {
+    const { values, missing } = buildJobDraft({ source, llm: answerFor("1"), status: "saved" });
+    expect(values.cvFit).toBeNull();
+    expect(values.preferenceFit).toBeNull();
+    expect(values.verdict).toBeNull();
+    expect(missing).not.toContain("verdict");
+  });
+
   it("normalises skills", () => {
     const { values } = buildJobDraft({
       source,
@@ -178,6 +186,17 @@ describe("buildJobDraft details", () => {
       expect(values.skills).toEqual(["php"]);
       expect(values.summary).toBe("Old summary.");
       expect(missing).not.toContain("summary");
+    });
+
+    it("keeps a saved assessment, which extraction never produces", () => {
+      const { values } = buildJobDraft({
+        source,
+        llm: answerFor("1"),
+        status: "saved",
+        saved: { ...saved, cvFit: "Good match.", verdict: "high" },
+      });
+      expect(values.cvFit).toBe("Good match.");
+      expect(values.verdict).toBe("high");
     });
 
     it("still flags AI fields that are blank in both", () => {

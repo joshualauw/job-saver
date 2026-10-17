@@ -1,6 +1,6 @@
 # AI analyzer
 
-Status: step 1 done; steps 2 to 6 not started. Product context: [PRD.md](../PRD.md). Shape of the code:
+Status: steps 1 and 2 done; steps 3 to 6 not started. Product context: [PRD.md](../PRD.md). Shape of the code:
 [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## Goal
@@ -39,9 +39,9 @@ it to the PRD and roadmap.
 - **Results are AI-sourced fields**, defined in the single field list like the others, so the
   schemas and sheet mapping come from there. The user-owned and code-owned fields stay out of the
   model's reach.
-- **Preference fit is one text cell**, one line per preference. Lines must not start with `-`, `=`,
-  `+` or `@`, because the formula-injection guard would alter them in the sheet; use a "Yes:" /
-  "No:" / "Not stated:" prefix.
+- **Preference fit is one text cell**, one line per preference, each starting with "Yes:", "No:" or
+  "Not stated:". The formula-injection guard only looks at the first character of the whole cell, so
+  the first line must not begin with `=`, `+`, `-` or `@`; the prefixes guarantee that.
 - **The three fields are read-only in the UI**, shown in the card rather than as inputs. The form
   still saves them. If a wrong verdict needs correcting, the user re-analyzes or edits the sheet.
 - **Privacy.** The CV is personal data. It lives only in `chrome.storage.local`, is sent only to
@@ -79,7 +79,11 @@ used for tests provides, and the legacy build works the same in the browser.
   small scrubbed sample PDF (no personal data in the fixture).
 - Done when: the CV and preferences survive closing the panel and nothing else in the app changes.
 
-### 2. Add the three fields
+### 2. Add the three fields (done)
+
+The fields use a new field source, "assessment", rather than "ai": extraction stays untouched
+(the extraction schema is built from "ai" fields only) and the form skips them by that source, with
+no extra flags. Step 3 builds the assessor's output schema from the same source.
 
 - Add the CV fit, preference fit and verdict fields to the field list (verdict as an enum with the
   four levels). Rely on the derived schemas and sheet mapping; add no field names elsewhere.

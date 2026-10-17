@@ -25,6 +25,9 @@ const validJob: JobValues = {
   maxSalary: 12_000_000,
   summary: "Builds APIs.",
   notes: null,
+  cvFit: null,
+  preferenceFit: null,
+  verdict: null,
 };
 
 describe("buildFormSchema", () => {
@@ -138,5 +141,25 @@ describe("buildLlmSchema", () => {
     expect(json.properties["skills"]?.type).toBe("array");
     expect(json.properties["skills"]?.description).toMatch(/lowercase/i);
     expect([...json.required].sort()).toEqual([...aiKeys].sort());
+  });
+});
+
+describe("assessment fields", () => {
+  const assessmentKeys = fields.filter((field) => field.source === "assessment").map((field) => field.key);
+
+  it("exist for the CV fit, preference fit and verdict", () => {
+    expect(assessmentKeys).toEqual(["cvFit", "preferenceFit", "verdict"]);
+  });
+
+  it("are never part of what the extraction model is asked for", () => {
+    const json = z.toJSONSchema(jobLlmSchema) as { required: string[] };
+    for (const key of assessmentKeys) expect(json.required).not.toContain(key);
+  });
+
+  it("are optional to save and accept the four verdict levels", () => {
+    for (const verdict of ["low", "medium", "high", "very_high"]) {
+      expect(jobFormSchema.safeParse({ ...validJob, verdict }).success).toBe(true);
+    }
+    expect(jobFormSchema.safeParse({ ...validJob, verdict: "great" }).success).toBe(false);
   });
 });
