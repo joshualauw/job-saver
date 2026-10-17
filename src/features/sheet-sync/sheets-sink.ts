@@ -8,7 +8,6 @@ import type { RawCell } from "@/core/row-mapping";
 import type { SavedJob, SaveResult, Sink } from "@/core/types";
 
 import { columnLetter, quoteTab } from "./a1-notation";
-import { planSave } from "./save-plan";
 import type { SheetsClient } from "./sheets-client";
 
 const JOB_URL_KEY = "jobUrl" satisfies JobFieldKey;
@@ -102,7 +101,7 @@ export function createSheetsSink({ tab, client }: SheetsSinkOptions): Sink {
       return { columns: toSheetCells(fields, {}, header).length };
     },
 
-    async save(values, today): Promise<SaveResult> {
+    async save(values): Promise<SaveResult> {
       const jobUrl = values[JOB_URL_KEY];
       if (typeof jobUrl !== "string" || jobUrl === "") {
         throw new SchemaError("A job URL is required to save.");
@@ -111,23 +110,22 @@ export function createSheetsSink({ tab, client }: SheetsSinkOptions): Sink {
       // Re-find by URL on every save: rows may have moved since the form was opened.
       const snapshot = await readTab();
       const existing = locate(snapshot, jobUrl);
-      const planned = planSave(existing, values, today);
 
       if (existing) {
-        await writeCells(existing.row, planned, snapshot.header);
+        await writeCells(existing.row, values, snapshot.header);
         return { action: "updated", row: existing.row };
       }
 
       const target = firstFreeRow(snapshot);
       try {
-        await writeCells(target, planned, snapshot.header);
+        await writeCells(target, values, snapshot.header);
         return { action: "created", row: target };
       } catch (error) {
         if (!isOutsideGrid(error)) throw error;
       }
 
       // The prepared rows ran out: let Google add one. It copies the last row's formatting.
-      const row = toSheetRow(fields, planned, snapshot.header);
+      const row = toSheetRow(fields, values, snapshot.header);
       const path = `values/${encodeURIComponent(`${quotedTab}!A1`)}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`;
       const response = await client.post(path, { values: [row] }, appendResponse);
       return { action: "created", row: rowFromRange(response.updates?.updatedRange) ?? target };

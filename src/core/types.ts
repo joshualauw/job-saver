@@ -113,7 +113,7 @@ export interface Sink {
   /** The saved row for this clean job URL, if any. */
   find(jobUrl: string): Promise<SavedJob | null>;
   /** Appends a new row, or updates the existing row for the same job URL. */
-  save(values: Readonly<Record<string, unknown>>, today: string): Promise<SaveResult>;
+  save(values: Readonly<Record<string, unknown>>): Promise<SaveResult>;
   /**
    * Checks the destination is reachable and has every configured column; throws a typed error
    * naming what is wrong. `columns` is how many configured columns were found.

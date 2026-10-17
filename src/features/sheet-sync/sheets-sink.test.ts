@@ -11,7 +11,6 @@ import { createSheetsSink } from "./sheets-sink";
 
 const URL_A = "https://id.jobstreet.com/id/job/1";
 const URL_B = "https://id.jobstreet.com/id/job/2";
-const TODAY = "2026-10-16";
 
 // The sheet has every configured column plus one the user added themselves.
 const header = [...fields.map((field) => field.column), "My Comments"];
@@ -89,7 +88,7 @@ describe("sheets sink: save a new job", () => {
   it("writes into the row after the last job, so that row keeps its prepared formatting", async () => {
     const { sink, post } = fakeClient([header, rowFor({ jobUrl: URL_B })]);
 
-    const result = await sink.save(values({ lastUpdatedAt: "2020-01-01" }), TODAY);
+    const result = await sink.save(values());
 
     expect(result).toEqual({ action: "created", row: 3 });
     expect(post).toHaveBeenCalledOnce();
@@ -98,17 +97,16 @@ describe("sheets sink: save a new job", () => {
     expect(body.valueInputOption).toBe("USER_ENTERED");
     expect(cellWritten(body, "Company", 3)).toBe("'Ryvo");
     expect(cellWritten(body, "Status", 3)).toBe("Applied");
-    expect(cellWritten(body, "Last Updated At", 3)).toBe("");
   });
 
   it("uses row 2 on a tab with only a header", async () => {
     const { sink } = fakeClient([header]);
-    expect(await sink.save(values(), TODAY)).toEqual({ action: "created", row: 2 });
+    expect(await sink.save(values())).toEqual({ action: "created", row: 2 });
   });
 
   it("never writes to columns the app does not own", async () => {
     const { sink, post } = fakeClient([header]);
-    await sink.save(values(), TODAY);
+    await sink.save(values());
 
     const body = post.mock.calls[0]?.[1] as BatchBody;
     expect(body.data).toHaveLength(fields.length);
@@ -118,18 +116,18 @@ describe("sheets sink: save a new job", () => {
   it("reuses a gap left by a deleted job instead of going to the end", async () => {
     const blank: unknown[] = [];
     const { sink } = fakeClient([header, rowFor({ jobUrl: URL_B }), blank, rowFor({ jobUrl: "https://x/3" })]);
-    expect((await sink.save(values(), TODAY)).row).toBe(3);
+    expect((await sink.save(values())).row).toBe(3);
   });
 
   it("treats a row with data only in a user-added column as free, since the app owns none of it", async () => {
     const userOnly = header.map((name) => (name === "My Comments" ? "note" : ""));
     const { sink } = fakeClient([header, userOnly]);
-    expect((await sink.save(values(), TODAY)).row).toBe(2);
+    expect((await sink.save(values())).row).toBe(2);
   });
 
   it("guards formula-like text before it reaches the sheet", async () => {
     const { sink, post } = fakeClient([header]);
-    await sink.save(values({ summary: "=HYPERLINK(1)" }), TODAY);
+    await sink.save(values({ summary: "=HYPERLINK(1)" }));
     expect(cellWritten(post.mock.calls[0]?.[1] as BatchBody, "Summary", 2)).toBe("'=HYPERLINK(1)");
   });
 
@@ -139,7 +137,7 @@ describe("sheets sink: save a new job", () => {
       new UnexpectedError("Google Sheets rejected the request: Range ('Jobs'!A2) exceeds grid limits. Max rows: 1"),
     );
 
-    const result = await sink.save(values(), TODAY);
+    const result = await sink.save(values());
 
     expect(result).toEqual({ action: "created", row: 1001 });
     const [path, body] = post.mock.calls[1] as [string, { values: unknown[][] }];
@@ -152,7 +150,7 @@ describe("sheets sink: save a new job", () => {
   it("does not hide other write failures behind the append fallback", async () => {
     const { sink, post } = fakeClient([header]);
     post.mockRejectedValueOnce(new UnexpectedError("Google Sheets rejected the request: something else"));
-    await expect(sink.save(values(), TODAY)).rejects.toThrow("something else");
+    await expect(sink.save(values())).rejects.toThrow("something else");
     expect(post).toHaveBeenCalledOnce();
   });
 });
@@ -161,7 +159,7 @@ describe("sheets sink: save over an existing job", () => {
   it("updates only the cells the app owns, so user columns are untouched", async () => {
     const { sink, post } = fakeClient([header, rowFor({ jobUrl: URL_B }), rowFor({ status: "saved" })]);
 
-    const result = await sink.save(values({ status: "applied" }), TODAY);
+    const result = await sink.save(values({ status: "applied" }));
 
     expect(result).toEqual({ action: "updated", row: 3 });
     const [path, body] = post.mock.calls[0] as [
@@ -176,37 +174,19 @@ describe("sheets sink: save over an existing job", () => {
     expect(ranges).not.toContain(`'Jobs'!${columnLetter(col("My Comments"))}3`);
     expect(body.data).toHaveLength(fields.length);
   });
-
-  it("stamps lastUpdatedAt with today when the status changed", async () => {
-    const { sink, post } = fakeClient([header, rowFor({ status: "saved" })]);
-    await sink.save(values({ status: "applied" }), TODAY);
-
-    const data = (post.mock.calls[0]?.[1] as { data: { range: string; values: unknown[][] }[] }).data;
-    const entry = data.find((item) => item.range === `'Jobs'!${columnLetter(col("Last Updated At"))}2`);
-    expect(entry?.values).toEqual([[TODAY]]);
-  });
-
-  it("keeps the stored lastUpdatedAt when the status did not change", async () => {
-    const { sink, post } = fakeClient([header, rowFor({ status: "applied", lastUpdatedAt: "2026-10-01" })]);
-    await sink.save(values({ status: "applied" }), TODAY);
-
-    const data = (post.mock.calls[0]?.[1] as { data: { range: string; values: unknown[][] }[] }).data;
-    const entry = data.find((item) => item.range === `'Jobs'!${columnLetter(col("Last Updated At"))}2`);
-    expect(entry?.values).toEqual([["2026-10-01"]]);
-  });
 });
 
 describe("sheets sink: validation", () => {
   it("requires a job URL to save", async () => {
     const { sink, post } = fakeClient([header]);
-    await expect(sink.save(values({ jobUrl: "" }), TODAY)).rejects.toBeInstanceOf(SchemaError);
+    await expect(sink.save(values({ jobUrl: "" }))).rejects.toBeInstanceOf(SchemaError);
     expect(post).not.toHaveBeenCalled();
   });
 
   it("fails before writing anything when a configured column is missing", async () => {
     const short = header.filter((name) => name !== "Skills");
     const { sink, post } = fakeClient([short]);
-    await expect(sink.save(values(), TODAY)).rejects.toBeInstanceOf(MissingColumnsError);
+    await expect(sink.save(values())).rejects.toBeInstanceOf(MissingColumnsError);
     expect(post).not.toHaveBeenCalled();
   });
 });

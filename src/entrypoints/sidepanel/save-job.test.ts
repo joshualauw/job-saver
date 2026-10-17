@@ -14,7 +14,6 @@ function deps(overrides: Partial<SaveDeps> = {}) {
   const all: SaveDeps = {
     readSettings: () => Promise.resolve({ spreadsheetId: "sheet-id" }),
     createSink,
-    today: () => "2026-10-16",
     ...overrides,
   };
   return { all, save, createSink };
@@ -27,11 +26,11 @@ describe("saveJob", () => {
     expect(createSink).not.toHaveBeenCalled();
   });
 
-  it("saves through the sink with today's date and returns its result", async () => {
+  it("saves through the sink and returns its result", async () => {
     const { all, save, createSink } = deps();
     await expect(saveJob(values, all)).resolves.toEqual({ action: "created", row: 4 });
     expect(createSink).toHaveBeenCalledWith("sheet-id", appConfig.defaultSheetTab);
-    expect(save).toHaveBeenCalledWith(values, "2026-10-16");
+    expect(save).toHaveBeenCalledWith(values);
   });
 });
 
