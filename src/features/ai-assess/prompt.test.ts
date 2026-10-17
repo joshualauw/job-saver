@@ -44,7 +44,25 @@ describe("buildSystemPrompt", () => {
   it("covers a missing CV or missing preferences", () => {
     const system = buildSystemPrompt();
     expect(system).toMatch(/Return null when there is no <cv>/);
-    expect(system).toMatch(/only the CV or only the preferences/);
+    expect(system).toMatch(/If there is no <cv>, judge from the preferences alone/);
+    expect(system).toMatch(/If there are no <preferences>, judge from the CV alone/);
+  });
+
+  it("separates core from secondary requirements, so extras never count as gaps", () => {
+    const system = buildSystemPrompt();
+    expect(system).toMatch(/Split the posting's requirements into core and secondary/);
+    expect(system).toMatch(/Judge the CV against the core requirements only/);
+    expect(system).toMatch(/Never count a secondary\s+item as a gap/);
+    expect(system).toMatch(/do not invent requirements the posting does not\s+state/);
+    expect(system).toMatch(/relocat/);
+  });
+
+  it("keeps preferences soft: at most one level down, and never low on their own", () => {
+    const system = buildSystemPrompt();
+    expect(system).toMatch(/Preferences are soft/);
+    expect(system).toMatch(/lower the verdict by one level in total/);
+    expect(system).toMatch(/never make it low on their own/);
+    expect(system).not.toMatch(/deal-breaker/);
   });
 
   it("uses the configured language", () => {
