@@ -19,7 +19,6 @@ import { useSettings } from "@/features/settings/use-settings";
 import { toaster } from "@/theme/toast";
 
 import { analyzeLabel } from "./analyze-label";
-import { SiteBadge } from "./SiteBadge";
 import { useActiveTabUrl } from "./use-active-tab-url";
 import { useAnalyzeJob } from "./use-analyze-job";
 import { useSaveJob } from "./use-save-job";
@@ -190,8 +189,6 @@ export function App() {
                 </Button>
               </Alert.Root>
             )}
-
-            <SiteBadge url={activeUrl} />
 
             <Button
               onClick={() => runAnalysis(false)}
