@@ -17,8 +17,8 @@ no backend, no accounts, no tracking. You bring your own OpenAI key and your own
 - **Review, then save.** Every value is editable before it goes anywhere. Save adds a row to your
   sheet, or updates the existing row if you saved that job before.
 - **Fit assessment (optional).** Load your CV (PDF, `.txt` or `.md`) and a list of preferences. Each
-  analysis then also shows a card: how well your CV matches, a yes / no / not stated for each
-  preference, and an overall verdict from low to very high.
+  analysis then also shows a card: a short list of how your CV matches and where it falls short, a
+  yes / no for each preference, and an overall verdict from low to very high.
 - **Highlight to narrow it down.** Select part of the page and the button shows how many characters
   it will read.
 - **Works on other sites too**, with less accuracy. Jobstreet has dedicated support.

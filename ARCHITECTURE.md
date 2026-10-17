@@ -36,8 +36,9 @@ flowchart TD
    facts read via per-site selectors, the cleaned ad text and any JSON-LD. A text selection you
    made takes precedence; unknown sites fall back to generic page text.
 2. **Two requests, in parallel, same payload.** The extractor fills the tracked fields. The
-   assessor (when you have set a CV or preferences) returns a CV fit, a yes / no / not stated for
-   each preference, and a verdict. A failed assessment never loses the extracted form.
+   assessor (when you have set a CV or preferences) returns a CV fit as short yes / no bullets, a
+   yes / no for each preference (what the posting does not say counts as no), and a verdict. A
+   failed assessment never loses the extracted form.
 3. **Merge.** Code derives what it can (platform, clean URL, defaults) and the model cannot override
    it. The result is validated and loaded into the form, with missing fields flagged.
 4. **Review and save.** Drafts survive closing the panel. Save maps values to columns by header
