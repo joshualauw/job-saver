@@ -1,9 +1,9 @@
 import { appConfig } from "@/config/app";
 import { UnexpectedError } from "@/core/errors";
 import type { SaveResult, Sink } from "@/core/types";
-import { todayIso } from "@/features/job-form/status-rules";
 import { readSettings } from "@/lib/storage";
 import type { Settings } from "@/lib/storage";
+import { todayIso } from "@/lib/today";
 
 import { createSink } from "./create-sink";
 
