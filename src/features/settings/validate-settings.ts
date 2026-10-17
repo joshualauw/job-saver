@@ -3,12 +3,16 @@ import type { Resolver } from "react-hook-form";
 import { parseSpreadsheetId } from "@/lib/spreadsheet-id";
 import type { Settings } from "@/lib/storage";
 
+import { parsePreferences } from "./parse-preferences";
+
 /** The settings form as typed: every field is a string. */
 export interface SettingsInputs {
   apiKey: string;
   model: string;
   spreadsheet: string;
   tab: string;
+  /** One preference per line. */
+  preferences: string;
 }
 
 export type SettingsValidation =
@@ -18,7 +22,7 @@ export type SettingsValidation =
 /**
  * Turns the form into a settings patch. The saved API key is never shown, so a blank key field
  * means "keep the saved key" and is left out of the patch; every other blank clears its setting
- * (model → config default, spreadsheet → none, tab → default tab).
+ * (model → config default, spreadsheet → none, tab → default tab, preferences → none).
  */
 export function validateSettings(inputs: SettingsInputs): SettingsValidation {
   const spreadsheet = inputs.spreadsheet.trim();
@@ -27,10 +31,14 @@ export function validateSettings(inputs: SettingsInputs): SettingsValidation {
     return { ok: false, errors: { spreadsheet: "Paste the spreadsheet URL or its ID." } };
   }
 
+  const preferences = parsePreferences(inputs.preferences);
+  if (!preferences.ok) return { ok: false, errors: { preferences: preferences.error } };
+
   const patch: Settings = {
     openaiModel: inputs.model.trim(),
     spreadsheetId,
     sheetTab: inputs.tab.trim(),
+    preferences: preferences.preferences,
   };
   const apiKey = inputs.apiKey.trim();
   if (apiKey !== "") patch.openaiApiKey = apiKey;

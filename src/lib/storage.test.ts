@@ -51,6 +51,36 @@ describe("settings storage", () => {
   });
 });
 
+describe("CV and preferences in settings", () => {
+  it("round-trips the CV text, file name and preferences", async () => {
+    const { adapter } = memoryAdapter();
+    await writeSettings(
+      { cvText: "Backend dev", cvFileName: "cv.pdf", preferences: [" Remote ", "Salary 10M+"] },
+      adapter,
+    );
+    expect(await readSettings(adapter)).toEqual({
+      cvText: "Backend dev",
+      cvFileName: "cv.pdf",
+      preferences: ["Remote", "Salary 10M+"],
+    });
+  });
+
+  it("clears the CV when written blank, and preferences when written empty", async () => {
+    const { adapter } = memoryAdapter();
+    await writeSettings(
+      { openaiApiKey: "sk-abc", cvText: "x", cvFileName: "cv.txt", preferences: ["Remote"] },
+      adapter,
+    );
+    await writeSettings({ cvText: "", cvFileName: "", preferences: [] }, adapter);
+    expect(await readSettings(adapter)).toEqual({ openaiApiKey: "sk-abc" });
+  });
+
+  it("does not drop other settings because of a long stored CV", async () => {
+    const { adapter } = memoryAdapter({ settings: { openaiApiKey: "sk-abc", cvText: "x".repeat(50_000) } });
+    expect((await readSettings(adapter)).openaiApiKey).toBe("sk-abc");
+  });
+});
+
 describe("draft storage", () => {
   const draft = {
     url: "https://id.jobstreet.com/id/job/1",

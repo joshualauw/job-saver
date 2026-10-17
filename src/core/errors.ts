@@ -1,4 +1,5 @@
-export type ErrorCode = "auth" | "rate_limit" | "schema" | "network" | "missing_columns" | "page_access" | "unexpected";
+export type ErrorCode =
+  "auth" | "rate_limit" | "schema" | "network" | "missing_columns" | "page_access" | "cv_file" | "unexpected";
 
 /** Base class: `message` is always safe to show to the user. */
 export class AppError extends Error {
@@ -46,6 +47,13 @@ export class UnexpectedError extends AppError {
 export class PageAccessError extends AppError {
   constructor(message: string, options?: { cause?: unknown }) {
     super("page_access", message, options);
+  }
+}
+
+/** A CV file that cannot be used; the message says why without quoting its contents. */
+export class CvFileError extends AppError {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super("cv_file", message, options);
   }
 }
 

@@ -4,7 +4,7 @@ import { settingsResolver, validateSettings } from "./validate-settings";
 import type { SettingsInputs } from "./validate-settings";
 
 const ID = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-abc";
-const base: SettingsInputs = { apiKey: "", model: "", spreadsheet: "", tab: "" };
+const base: SettingsInputs = { apiKey: "", model: "", spreadsheet: "", tab: "", preferences: "" };
 
 describe("validateSettings", () => {
   it("leaves a blank API key out of the patch so the saved key is kept", () => {
@@ -31,10 +31,23 @@ describe("validateSettings", () => {
 
   it("clears model, spreadsheet and tab when blank, and trims them otherwise", () => {
     const cleared = validateSettings(base);
-    expect(cleared.ok && cleared.patch).toEqual({ openaiModel: "", spreadsheetId: "", sheetTab: "" });
+    expect(cleared.ok && cleared.patch).toEqual({ openaiModel: "", spreadsheetId: "", sheetTab: "", preferences: [] });
 
     const filled = validateSettings({ ...base, model: " my-model ", tab: " Applications " });
     expect(filled.ok && filled.patch).toMatchObject({ openaiModel: "my-model", sheetTab: "Applications" });
+  });
+});
+
+describe("validateSettings preferences", () => {
+  it("turns the lines into a list", () => {
+    const result = validateSettings({ ...base, preferences: " Remote \n\nSalary above 10M " });
+    expect(result.ok && result.patch.preferences).toEqual(["Remote", "Salary above 10M"]);
+  });
+
+  it("reports too many preferences on that field", () => {
+    const many = Array.from({ length: 21 }, (_, index) => `pref ${index}`).join("\n");
+    const result = validateSettings({ ...base, preferences: many });
+    expect(result).toEqual({ ok: false, errors: { preferences: "Keep it to 20 preferences or fewer." } });
   });
 });
 

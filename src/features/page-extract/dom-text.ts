@@ -1,3 +1,5 @@
+import { normalizeText } from "@/core/normalize";
+
 const ELEMENT_NODE = 1;
 const TEXT_NODE = 3;
 
@@ -74,29 +76,6 @@ function walk(node: Node, out: string[], options: ExtractTextOptions): void {
   if (tag === "li") out.push("- ");
   for (const child of Array.from(element.childNodes)) walk(child, out, options);
   if (isBlock) out.push("\n");
-}
-
-/** Tidies raw text: trims lines, drops empty runs (max one blank line), keeps bullets on one line. */
-export function normalizeText(raw: string): string {
-  const lines = raw
-    .replace(/(^|\n)- [ \t]*\n+/g, "$1- ")
-    .split("\n")
-    .map((line) => line.replace(/[ \t\f\v]+/g, " ").trim());
-
-  const kept: string[] = [];
-  for (const line of lines) {
-    if (line === "" && (kept.length === 0 || kept[kept.length - 1] === "")) continue;
-    kept.push(line);
-  }
-  while (kept[kept.length - 1] === "") kept.pop();
-
-  // Keep a bullet list tight: `<li><p>…</p></li>` would otherwise leave a blank line between items.
-  return kept
-    .filter((line, index) => {
-      if (line !== "") return true;
-      return !(kept[index - 1]?.startsWith("- ") && kept[index + 1]?.startsWith("- "));
-    })
-    .join("\n");
 }
 
 /**

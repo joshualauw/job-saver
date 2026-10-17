@@ -14,6 +14,15 @@ export const settingsSchema = z.object({
   spreadsheetId: optionalText,
   /** Tab holding the jobs; falls back to the config default when unset. */
   sheetTab: optionalText,
+  /**
+   * Cleaned CV text and the name of the file it came from. Personal data: kept only here. The
+   * length limit is enforced when a CV is loaded, not on read, so an odd value can never make the
+   * whole settings object (API key included) read as empty.
+   */
+  cvText: optionalText,
+  cvFileName: optionalText,
+  /** What the user wants from a job, one entry per preference. */
+  preferences: z.array(z.string().trim()).optional(),
 });
 
 export type Settings = z.infer<typeof settingsSchema>;
@@ -33,6 +42,10 @@ function dropBlank(settings: Settings): Settings {
   if (settings.openaiModel) clean.openaiModel = settings.openaiModel;
   if (settings.spreadsheetId) clean.spreadsheetId = settings.spreadsheetId;
   if (settings.sheetTab) clean.sheetTab = settings.sheetTab;
+  if (settings.cvText) clean.cvText = settings.cvText;
+  if (settings.cvFileName) clean.cvFileName = settings.cvFileName;
+  const preferences = settings.preferences?.filter((preference) => preference !== "");
+  if (preferences && preferences.length > 0) clean.preferences = preferences;
   return clean;
 }
 

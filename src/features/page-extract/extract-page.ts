@@ -1,8 +1,9 @@
+import { normalizeText } from "@/core/normalize";
 import type { PagePayload } from "@/core/page-payload";
 import type { PlatformDef } from "@/core/types";
 import { parseHttpUrl } from "@/lib/url";
 
-import { extractText, normalizeText } from "./dom-text";
+import { extractText } from "./dom-text";
 import { readJobPostings } from "./json-ld";
 import { MIN_SELECTION_CHARS } from "./selection";
 import { truncateText } from "./truncate";

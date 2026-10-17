@@ -1,4 +1,4 @@
-import { Alert, Button, Field, Heading, HStack, Input, Stack, Text } from "@chakra-ui/react";
+import { Alert, Button, Field, Heading, HStack, Input, Stack, Text, Textarea } from "@chakra-ui/react";
 import { useForm } from "react-hook-form";
 
 import { appConfig } from "@/config/app";
@@ -6,6 +6,8 @@ import { hasOAuthClient } from "@/lib/chrome";
 import type { Settings } from "@/lib/storage";
 import { toaster } from "@/theme/toast";
 
+import { CvField } from "./CvField";
+import { formatPreferences } from "./parse-preferences";
 import { isSetupComplete, setupSteps } from "./setup-status";
 import { settingsResolver, validateSettings } from "./validate-settings";
 import type { SettingsInputs } from "./validate-settings";
@@ -33,6 +35,7 @@ function toInputs(settings: Settings | undefined): SettingsInputs {
     model: settings?.openaiModel ?? "",
     spreadsheet: settings?.spreadsheetId ?? "",
     tab: settings?.sheetTab ?? "",
+    preferences: formatPreferences(settings?.preferences),
   };
 }
 
@@ -120,6 +123,34 @@ export function SettingsView({ onboarding, onDone, connection, onTestConnection 
             <Field.Label>Tab name (optional)</Field.Label>
             <Input {...form.register("tab")} autoComplete="off" size="sm" placeholder={appConfig.defaultSheetTab} />
             <Field.HelperText>Row 1 of this tab must contain the column headers.</Field.HelperText>
+          </Field.Root>
+
+          <CvField
+            fileName={settings?.cvFileName}
+            text={settings?.cvText}
+            onLoaded={(cv) =>
+              save.mutate(
+                { cvText: cv.text, cvFileName: cv.fileName },
+                { onSuccess: () => toaster.create({ type: "success", title: "CV saved" }) },
+              )
+            }
+            onRemove={() => save.mutate({ cvText: "", cvFileName: "" })}
+          />
+
+          <Field.Root invalid={errors.preferences !== undefined}>
+            <Field.Label>Preferences (optional)</Field.Label>
+            <Textarea
+              {...form.register("preferences")}
+              autoComplete="off"
+              size="sm"
+              rows={4}
+              placeholder={"Remote work\nSalary above 10M"}
+            />
+            {errors.preferences?.message ? (
+              <Field.ErrorText>{errors.preferences.message}</Field.ErrorText>
+            ) : (
+              <Field.HelperText>What you want from a job, one per line.</Field.HelperText>
+            )}
           </Field.Root>
 
           {save.isError && (

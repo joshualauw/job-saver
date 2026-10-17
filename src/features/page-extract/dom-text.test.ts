@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { documentFromHtml } from "../../../tests/helpers/fixtures";
 
-import { extractText, normalizeText } from "./dom-text";
+import { extractText } from "./dom-text";
 import type { ExtractTextOptions } from "./dom-text";
 
 function textOf(html: string, options?: ExtractTextOptions): string {
@@ -52,15 +52,5 @@ describe("extractText", () => {
     const html = "<nav>Menu</nav><p>Body</p><footer>Legal</footer>";
     expect(textOf(html)).toBe("Menu\n\nBody\n\nLegal");
     expect(textOf(html, { skipLandmarks: true })).toBe("Body");
-  });
-});
-
-describe("normalizeText", () => {
-  it("trims lines and limits blank runs to one", () => {
-    expect(normalizeText("\n\n  a  \n\n\n\n b \n\n")).toBe("a\n\nb");
-  });
-
-  it("returns an empty string for whitespace only", () => {
-    expect(normalizeText(" \n \t \n")).toBe("");
   });
 });

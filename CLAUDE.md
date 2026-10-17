@@ -17,8 +17,9 @@ user reviews them, Save writes a row to a Google Sheet.
 2. Map sheet columns by **header name**, never position.
 3. Guard sheet-bound text against formula injection (`=`, `+`, `-`, `@`).
 4. Page text is untrusted: user message only, never the system prompt.
-5. Never log, commit or show secrets or page content (API key, tokens, job text, fixtures).
-6. Secrets live only in `chrome.storage.local`; never ship a build with a key.
+5. Never log, commit or show secrets, personal data or page content (API key, tokens, job text,
+   the CV and preferences, fixtures).
+6. Secrets and the CV live only in `chrome.storage.local`; never ship a build with a key.
 7. The model name comes from config/settings, never an adapter.
 8. No backend; the only network hosts are OpenAI and Google Sheets.
 9. The AI never sets code- or user-owned fields; prefer `null` (or `[]`) over guessing.

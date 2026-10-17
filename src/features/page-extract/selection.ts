@@ -1,4 +1,4 @@
-import { normalizeText } from "./dom-text";
+import { normalizeText } from "@/core/normalize";
 
 /** Selections shorter than this are treated as accidental clicks, not a deliberate choice. */
 export const MIN_SELECTION_CHARS = 40;

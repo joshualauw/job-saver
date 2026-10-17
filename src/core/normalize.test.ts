@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { joinList, normalizeList, splitList } from "./normalize";
+import { joinList, normalizeList, normalizeText, splitList } from "./normalize";
 
 describe("normalizeList", () => {
   it("lowercases, trims, collapses whitespace, drops empties and duplicates", () => {
@@ -33,5 +33,15 @@ describe("joinList / splitList", () => {
 
   it("splits an empty string to an empty list", () => {
     expect(splitList("")).toEqual([]);
+  });
+});
+
+describe("normalizeText", () => {
+  it("trims lines and limits blank runs to one", () => {
+    expect(normalizeText("\n\n  a  \n\n\n\n b \n\n")).toBe("a\n\nb");
+  });
+
+  it("returns an empty string for whitespace only", () => {
+    expect(normalizeText(" \n \t \n")).toBe("");
   });
 });
