@@ -7,10 +7,6 @@ export const appConfig = {
   defaultSheetTab: "Jobs",
   /** Upper bound on page text sent to the model, in characters. */
   maxPageTextChars: 12_000,
-  /** Longest CV text that can be saved, in characters. Longer CVs are refused, never cut. */
-  maxCvChars: 6_000,
-  /** Largest CV file that is read at all, in bytes. */
-  maxCvFileBytes: 5 * 1024 * 1024,
   /** Most preferences that can be saved. */
   maxPreferences: 20,
 } as const;

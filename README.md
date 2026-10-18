@@ -7,7 +7,7 @@ own Google Sheet. It can also check a job against your preferences.
 This is a personal project, built step by step with Claude Code. It runs entirely in your browser:
 no backend, no accounts, no tracking. You bring your own OpenAI key and your own Google Sheet.
 
-<!-- Add a screenshot or short GIF of the side panel here. Do not show your API key, CV or sheet ID. -->
+<!-- Add a screenshot or short GIF of the side panel here. Do not show your API key or sheet ID. -->
 
 ## What it does
 
@@ -102,8 +102,8 @@ Click the toolbar icon to open the panel. First run opens Settings:
 - **OpenAI API key.** Stored only in this browser (`chrome.storage.local`).
 - **Google spreadsheet.** Paste the sheet's URL or its ID, and the tab name if it isn't `Jobs`.
 - **Test connection** signs in to Google and checks your headers.
-- **CV and preferences (optional).** Choose a PDF, `.txt` or `.md` CV of up to 6,000 characters, and
-  write one preference per line, e.g. "Remote work".
+- **Preferences (optional).** Write one per line: what you want from a job, or skills and experience
+  you have, e.g. "Remote work" or "Node.js and React".
 
 The model name has a default in [`src/config/app.ts`](src/config/app.ts) and can be overridden in
 Settings.
@@ -120,7 +120,7 @@ click, per site). Results are better if you highlight just the job description f
 
 ## Privacy and safety
 
-- Your API key, CV and preferences are stored in your browser only. They never go into the sheet.
+- Your API key and preferences are stored in your browser only. They never go into the sheet.
 - Page text (and your preferences, if set) is sent to OpenAI to do the work, and rows are written to Google
   Sheets. Nothing else leaves your browser. Requests to OpenAI set `store: false`.
 - The key is used directly from the browser. That is fine for a personal build; never publish a

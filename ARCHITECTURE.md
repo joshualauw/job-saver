@@ -23,7 +23,7 @@ flowchart TD
 
     Payload --> Extractor["Extractor (OpenAI)<br/>fills the form fields"]
     Payload --> Assessor["Assessor (OpenAI)<br/>only if preferences are set"]
-    Local[("CV and preferences<br/>browser storage")] --> Assessor
+    Local[("Preferences<br/>browser storage")] --> Assessor
 
     Extractor --> Merge["Merge and validate<br/>code-owned fields win"]
     Assessor --> Merge
@@ -76,7 +76,7 @@ flowchart TD
 | `src/features/ai-assess`    | The assessor and the fit card.                                                                               |
 | `src/features/job-form`     | The review form, validation and draft persistence.                                                           |
 | `src/features/sheet-sync`   | Google sign-in, the Sheets client and the sink.                                                              |
-| `src/features/settings`     | API key, sheet, CV and preferences; first-run setup.                                                         |
+| `src/features/settings`     | API key, sheet and preferences; first-run setup.                                                             |
 | `src/lib`                   | Thin wrappers around the browser, storage and OpenAI, plus small utilities.                                  |
 | `src/theme`                 | Chakra configuration, dark mode and toasts.                                                                  |
 | `tests`                     | Fixtures (saved pages), helpers, and a check that keeps the README's sheet headers in sync.                  |
@@ -84,7 +84,7 @@ flowchart TD
 ## Security and privacy
 
 - Page text and your preferences go only to OpenAI, with `store: false`. Rows go only to Google Sheets.
-- The API key and the CV live in browser storage and never in the sheet, the logs or error messages.
+- The API key and the preferences live in browser storage and never in the sheet, the logs or error messages.
 - The key is used directly from the browser. That is acceptable only because this is a personal,
   unpublished build; never ship a build that contains a key.
 

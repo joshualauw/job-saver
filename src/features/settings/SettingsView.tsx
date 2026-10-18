@@ -6,7 +6,6 @@ import { hasOAuthClient } from "@/lib/chrome";
 import type { Settings } from "@/lib/storage";
 import { toaster } from "@/theme/toast";
 
-import { CvField } from "./CvField";
 import { formatPreferences } from "./parse-preferences";
 import { isSetupComplete, setupSteps } from "./setup-status";
 import { settingsResolver, validateSettings } from "./validate-settings";
@@ -124,18 +123,6 @@ export function SettingsView({ onboarding, onDone, connection, onTestConnection 
             <Input {...form.register("tab")} autoComplete="off" size="sm" placeholder={appConfig.defaultSheetTab} />
             <Field.HelperText>Row 1 of this tab must contain the column headers.</Field.HelperText>
           </Field.Root>
-
-          <CvField
-            fileName={settings?.cvFileName}
-            text={settings?.cvText}
-            onLoaded={(cv) =>
-              save.mutate(
-                { cvText: cv.text, cvFileName: cv.fileName },
-                { onSuccess: () => toaster.create({ type: "success", title: "CV saved" }) },
-              )
-            }
-            onRemove={() => save.mutate({ cvText: "", cvFileName: "" })}
-          />
 
           <Field.Root invalid={errors.preferences !== undefined}>
             <Field.Label>Preferences (optional)</Field.Label>

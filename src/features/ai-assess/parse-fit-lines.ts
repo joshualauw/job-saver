@@ -11,7 +11,7 @@ const PREFIXES = (Object.entries(ANSWER_LABELS) as [FitAnswer, string][]).map(
   ([answer, label]) => [answer, `${label}: `] as const,
 );
 
-/** The inverse of how `toAssessmentValues` writes the CV fit and preference fit cells. */
+/** The inverse of how `toAssessmentValues` writes the preference fit cell. */
 export function parseFitLines(text: string): FitLine[] {
   const lines: FitLine[] = [];
   for (const raw of text.split("\n")) {
