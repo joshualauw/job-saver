@@ -78,12 +78,9 @@ export async function analyzeJob(
 
   // Started before extraction is awaited so the two requests overlap. It never rejects, so a
   // failing extraction cannot leave it as an unhandled rejection.
-  const cv = settings.cvText ?? null;
   const preferences = settings.preferences ?? [];
   const assessing =
-    cv !== null || preferences.length > 0
-      ? assess(deps.createAssessor({ apiKey, model }), { payload, cv, preferences })
-      : null;
+    preferences.length > 0 ? assess(deps.createAssessor({ apiKey, model }), { payload, preferences }) : null;
 
   const llm = await deps.createExtractor({ apiKey, model }).extract(payload);
 

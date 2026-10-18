@@ -22,9 +22,7 @@ const validJob: JobValues = {
   maxSalary: 12_000_000,
   summary: "Builds APIs.",
   notes: null,
-  cvFit: null,
   preferenceFit: null,
-  verdict: null,
 };
 
 describe("buildFormSchema", () => {
@@ -147,8 +145,8 @@ describe("buildLlmSchema", () => {
 describe("assessment fields", () => {
   const assessmentKeys = fields.filter((field) => field.source === "assessment").map((field) => field.key);
 
-  it("exist for the CV fit, preference fit and verdict", () => {
-    expect(assessmentKeys).toEqual(["cvFit", "preferenceFit", "verdict"]);
+  it("exist for the preference fit only", () => {
+    expect(assessmentKeys).toEqual(["preferenceFit"]);
   });
 
   it("are never part of what the extraction model is asked for", () => {
@@ -156,10 +154,8 @@ describe("assessment fields", () => {
     for (const key of assessmentKeys) expect(json.required).not.toContain(key);
   });
 
-  it("are optional to save and accept the four verdict levels", () => {
-    for (const verdict of ["low", "medium", "high", "very_high"]) {
-      expect(jobFormSchema.safeParse({ ...validJob, verdict }).success).toBe(true);
-    }
-    expect(jobFormSchema.safeParse({ ...validJob, verdict: "great" }).success).toBe(false);
+  it("are optional to save", () => {
+    expect(jobFormSchema.safeParse({ ...validJob, preferenceFit: "Yes: Remote work" }).success).toBe(true);
+    expect(jobFormSchema.safeParse({ ...validJob, preferenceFit: null }).success).toBe(true);
   });
 });

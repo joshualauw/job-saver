@@ -13,7 +13,6 @@ const SCHEMA_NAME = "job_assessment";
 export interface OpenAIAssessorOptions {
   readonly apiKey: string;
   readonly model: string;
-  readonly language?: string;
   /** Injectable for tests; defaults to a real browser-side client. */
   readonly client?: OpenAIClient;
 }
@@ -23,7 +22,7 @@ export function createOpenAIAssessor(options: OpenAIAssessorOptions): Assessor<A
 
   return {
     async assess(input: AssessmentInput): Promise<AssessmentValues> {
-      const prompt = buildPrompt(input, options.language);
+      const prompt = buildPrompt(input);
       const answer = await requestStructured({
         client,
         model: options.model,

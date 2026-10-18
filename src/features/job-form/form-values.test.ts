@@ -20,9 +20,7 @@ const draft = {
   maxSalary: null,
   summary: "Builds software.",
   notes: null,
-  cvFit: "Good match.",
   preferenceFit: "Yes: Remote work\nNo: Salary above 10M",
-  verdict: "high",
 };
 
 describe("toFormInputs", () => {
@@ -43,15 +41,12 @@ describe("toFormInputs", () => {
 describe("assessment fields in the form", () => {
   it("are not shown as inputs", () => {
     const keys = formFields.map((field) => field.key);
-    expect(keys).not.toContain("verdict");
-    expect(keys).not.toContain("cvFit");
     expect(keys).not.toContain("preferenceFit");
     expect(keys).toContain("notes");
   });
 
   it("still travel through the form state and out to Save", () => {
     const values = fromFormInputs(toFormInputs(draft));
-    expect(values["verdict"]).toBe("high");
     expect(values["preferenceFit"]).toBe("Yes: Remote work\nNo: Salary above 10M");
   });
 });

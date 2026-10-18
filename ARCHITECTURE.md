@@ -7,7 +7,7 @@ records structure and decisions; the details live in the code.
 
 A Manifest V3 Chrome extension that lives in the **side panel**. It reads the job page you are
 looking at, asks OpenAI to fill a form, lets you review it, and writes a row to **your own Google
-Sheet**. Optionally it also judges the job against your CV and preferences.
+Sheet**. Optionally it also checks the job against your preferences.
 
 - **No backend.** Everything runs in the extension. The only network calls go to OpenAI and Google.
 - **AI proposes, you decide.** Every value is visible and editable before it is saved.
@@ -22,7 +22,7 @@ flowchart TD
     Sheet[("Your Google Sheet")] -.->|"already saved? reuse the row"| Merge
 
     Payload --> Extractor["Extractor (OpenAI)<br/>fills the form fields"]
-    Payload --> Assessor["Assessor (OpenAI)<br/>only if a CV or preferences are set"]
+    Payload --> Assessor["Assessor (OpenAI)<br/>only if preferences are set"]
     Local[("CV and preferences<br/>browser storage")] --> Assessor
 
     Extractor --> Merge["Merge and validate<br/>code-owned fields win"]
@@ -36,9 +36,8 @@ flowchart TD
    facts read via per-site selectors, the cleaned ad text and any JSON-LD. A text selection you
    made takes precedence; unknown sites fall back to generic page text.
 2. **Two requests, in parallel, same payload.** The extractor fills the tracked fields. The
-   assessor (when you have set a CV or preferences) returns a CV fit as short yes / no bullets, a
-   yes / no for each preference (what the posting does not say counts as no), and a verdict. A
-   failed assessment never loses the extracted form.
+   assessor (when you have set preferences) returns a yes / no for each one (what the posting does
+   not say counts as no). A failed assessment never loses the extracted form.
 3. **Merge.** Code derives what it can (platform, clean URL, defaults) and the model cannot override
    it. The result is validated and loaded into the form, with missing fields flagged.
 4. **Review and save.** Drafts survive closing the panel. Save maps values to columns by header
@@ -51,10 +50,9 @@ flowchart TD
   one-place change.
 - **The page is untrusted.** Job postings are arbitrary web content, so they go only in the user
   message, fenced and escaped, and the prompts tell the model to ignore instructions inside them. A
-  posting cannot talk up its own verdict.
+  posting cannot talk up its own fit.
 - **The model suggests, code decides.** Preferences are answered by number and code writes the sheet
-  text; the verdict is an enum from the field config; anything code can know is never left to the
-  model. Unknown means `null`, not a guess.
+  text; anything code can know is never left to the model. Unknown means `null`, not a guess.
 - **A spreadsheet is the database.** Columns are matched by header name, so you can reorder the
   sheet or add your own columns, such as a status you maintain yourself. Rows are identified by job
   URL, which gives edit mode. Updates write only the columns the app owns, new jobs go into the first
@@ -85,7 +83,7 @@ flowchart TD
 
 ## Security and privacy
 
-- Page text and your CV go only to OpenAI, with `store: false`. Rows go only to Google Sheets.
+- Page text and your preferences go only to OpenAI, with `store: false`. Rows go only to Google Sheets.
 - The API key and the CV live in browser storage and never in the sheet, the logs or error messages.
 - The key is used directly from the browser. That is acceptable only because this is a personal,
   unpublished build; never ship a build that contains a key.

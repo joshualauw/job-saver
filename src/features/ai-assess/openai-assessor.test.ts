@@ -22,16 +22,14 @@ const payload: PagePayload = {
   contentSource: "platform",
 };
 
-const CV = "Jane Doe, secret-cv-marker. Five years of Node.js.";
-const input: AssessmentInput = { payload, cv: CV, preferences: ["Remote work", "Salary above 10M"] };
+const PREFERENCE = "Experience with secret-preference-marker";
+const input: AssessmentInput = { payload, preferences: ["Remote work", PREFERENCE] };
 
 const answer: AssessmentAnswer = {
-  cvFit: [{ answer: "yes", text: "Matches the Node.js requirement." }],
   preferences: [
     { number: 1, answer: "yes" },
     { number: 2, answer: "no" },
   ],
-  verdict: "high",
 };
 
 type FakeClient = Pick<OpenAI, "responses">;
@@ -53,13 +51,11 @@ describe("createOpenAIAssessor", () => {
   it("returns the answer as field values", async () => {
     const { client } = fakeClient({ output: [], output_parsed: answer });
     await expect(assessor(client).assess(input)).resolves.toEqual({
-      cvFit: "Yes: Matches the Node.js requirement.",
-      preferenceFit: "Yes: Remote work\nNo: Salary above 10M",
-      verdict: "high",
+      preferenceFit: `Yes: Remote work\nNo: ${PREFERENCE}`,
     });
   });
 
-  it("sends the configured model, store:false, and the CV and page only in the user message", async () => {
+  it("sends the configured model, store:false, and the preferences and page only in the user message", async () => {
     const { client, parse } = fakeClient({ output: [], output_parsed: answer });
     await assessor(client).assess(input);
 
@@ -72,9 +68,9 @@ describe("createOpenAIAssessor", () => {
     expect(request.model).toBe("test-model");
     expect(request.store).toBe(false);
     expect(request.input.map((message) => message.role)).toEqual(["system", "user"]);
-    expect(request.input[0]?.content).not.toContain("secret-cv-marker");
+    expect(request.input[0]?.content).not.toContain("secret-preference-marker");
     expect(request.input[0]?.content).not.toContain("Build things");
-    expect(request.input[1]?.content).toContain("secret-cv-marker");
+    expect(request.input[1]?.content).toContain("secret-preference-marker");
     expect(request.input[1]?.content).toContain("Build things with Node.js.");
     expect(request.text.format.name).toBe("job_assessment");
     expect(request.text.format.strict).toBe(true);
@@ -89,23 +85,26 @@ describe("createOpenAIAssessor", () => {
   });
 
   it("throws SchemaError when the answer breaks the schema or misses a preference", async () => {
-    const broken = fakeClient({ output: [], output_parsed: { ...answer, verdict: "great" } }).client;
+    const broken = fakeClient({
+      output: [],
+      output_parsed: { ...answer, preferences: [{ number: 1, answer: "maybe" }] },
+    }).client;
     await expect(assessor(broken).assess(input)).rejects.toBeInstanceOf(SchemaError);
 
     const short = fakeClient({ output: [], output_parsed: { ...answer, preferences: [answer.preferences[0]] } }).client;
     await expect(assessor(short).assess(input)).rejects.toBeInstanceOf(SchemaError);
   });
 
-  it("maps SDK failures to typed errors that never contain the CV", async () => {
-    const withStatus = (status: number) => Object.assign(new Error(`failed for ${CV}`), { status });
+  it("maps SDK failures to typed errors that never contain the preferences", async () => {
+    const withStatus = (status: number) => Object.assign(new Error(`failed for ${PREFERENCE}`), { status });
 
     await expect(assessor(failingClient(withStatus(401))).assess(input)).rejects.toBeInstanceOf(AuthError);
     await expect(assessor(failingClient(withStatus(429))).assess(input)).rejects.toBeInstanceOf(RateLimitError);
-    const network = await assessor(failingClient(new TypeError(CV)))
+    const network = await assessor(failingClient(new TypeError(PREFERENCE)))
       .assess(input)
       .catch((cause: unknown) => cause);
     expect(network).toBeInstanceOf(NetworkError);
-    expect((network as NetworkError).message).not.toContain("secret-cv-marker");
+    expect((network as NetworkError).message).not.toContain("secret-preference-marker");
   });
 });
 
@@ -123,7 +122,6 @@ describe.each(["1", "2", "3"])("assessing the Jobstreet fixture %s", (name) => {
     const user = (parse.mock.calls[0]?.[0] as { input: { content: string }[] }).input[1]?.content ?? "";
     expect(user).toContain("<job_description>");
     expect(user).toContain(Object.keys(page.facts)[0] ?? "<facts>");
-    expect(values.verdict).toBe("high");
     expect(values.preferenceFit?.split("\n")).toHaveLength(2);
   });
 });

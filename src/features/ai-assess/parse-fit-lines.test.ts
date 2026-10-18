@@ -19,12 +19,6 @@ describe("parseFitLines", () => {
     ]);
   });
 
-  it("shows an old paragraph CV fit as one plain line", () => {
-    expect(parseFitLines("Strong match on the backend stack.")).toEqual([
-      { answer: null, text: "Strong match on the backend stack." },
-    ]);
-  });
-
   it("is empty for empty text", () => {
     expect(parseFitLines("")).toEqual([]);
   });
@@ -33,23 +27,14 @@ describe("parseFitLines", () => {
     const preferences = ["Remote work", "=Four day week", "Salary: above 10M"];
     const values = toAssessmentValues(
       {
-        cvFit: [
-          { answer: "yes", text: "Matches Node.js and Postgres" },
-          { answer: "no", text: "=Needs 5 years" },
-        ],
         preferences: [
           { number: 1, answer: "no" },
           { number: 2, answer: "yes" },
           { number: 3, answer: "no" },
         ],
-        verdict: "medium",
       },
-      { cv: "My CV", preferences },
+      { preferences },
     );
     expect(parseFitLines(values.preferenceFit ?? "").map((line) => line.text)).toEqual(preferences);
-    expect(parseFitLines(values.cvFit ?? "")).toEqual([
-      { answer: "yes", text: "Matches Node.js and Postgres" },
-      { answer: "no", text: "=Needs 5 years" },
-    ]);
   });
 });

@@ -3,8 +3,6 @@ export const appConfig = {
   openaiModel: "gpt-6-luna",
   /** Language of the generated `summary` and `notes`, whatever language the posting is in. */
   summaryLanguage: "English",
-  /** Most bullets kept in the CV fit; the prompt asks for no more, and code drops the rest. */
-  maxCvFitLines: 5,
   /** Sheet tab used when none is configured. */
   defaultSheetTab: "Jobs",
   /** Upper bound on page text sent to the model, in characters. */

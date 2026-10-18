@@ -2,7 +2,7 @@
 
 A Chrome side-panel extension that turns "read a job posting, copy details into a spreadsheet" into
 "click, glance, save". AI fills in the fields, you review them, and one click writes a row to your
-own Google Sheet. It can also judge how well a job fits your CV and preferences.
+own Google Sheet. It can also check a job against your preferences.
 
 This is a personal project, built step by step with Claude Code. It runs entirely in your browser:
 no backend, no accounts, no tracking. You bring your own OpenAI key and your own Google Sheet.
@@ -16,9 +16,9 @@ no backend, no accounts, no tracking. You bring your own OpenAI key and your own
   is flagged "Not found" instead of guessed.
 - **Review, then save.** Every value is editable before it goes anywhere. Save adds a row to your
   sheet, or updates the existing row if you saved that job before.
-- **Fit assessment (optional).** Load your CV (PDF, `.txt` or `.md`) and a list of preferences. Each
-  analysis then also shows a card: a short list of how your CV matches and where it falls short, a
-  yes / no for each preference, and an overall verdict from low to very high.
+- **Preference check (optional).** Add a list of preferences, either what you want from a job or
+  skills and experience you have. Each analysis then also shows a card with a yes / no for each
+  preference. What the posting does not mention counts as no.
 - **Highlight to narrow it down.** Select part of the page and the button shows how many characters
   it will read.
 - **Works on other sites too**, with less accuracy. Jobstreet has dedicated support.
@@ -71,7 +71,7 @@ Settings) and put these headers in row 1. Order does not matter, and you can add
 columns.
 
 ```
-Company	Job Title	Address	Contract Type	Location Type	Platform	Job URL	Min YOE	Skills	Salary Period	Salary Currency	Min Salary	Max Salary	Summary	Notes	CV Fit	Preference Fit	Verdict
+Company	Job Title	Address	Contract Type	Location Type	Platform	Job URL	Min YOE	Skills	Salary Period	Salary Currency	Min Salary	Max Salary	Summary	Notes	Preference Fit
 ```
 
 The list comes from [`src/config/fields.ts`](src/config/fields.ts), which is the single source of
@@ -121,15 +121,15 @@ click, per site). Results are better if you highlight just the job description f
 ## Privacy and safety
 
 - Your API key, CV and preferences are stored in your browser only. They never go into the sheet.
-- Page text (and your CV, if set) is sent to OpenAI to do the work, and rows are written to Google
+- Page text (and your preferences, if set) is sent to OpenAI to do the work, and rows are written to Google
   Sheets. Nothing else leaves your browser. Requests to OpenAI set `store: false`.
 - The key is used directly from the browser. That is fine for a personal build; never publish a
   build that contains a key.
-- The fit verdict is an AI opinion, not advice. Read the CV fit text before trusting it.
+- The preference check is an AI reading of the posting, not advice. Read the posting before trusting it.
 - Respect the terms of the sites you use this on. It reads the page you are looking at, only when
   you click Analyze.
 
-Each Analyze makes one OpenAI request, or two if you have set a CV or preferences.
+Each Analyze makes one OpenAI request, or two if you have set preferences.
 
 ## Troubleshooting
 

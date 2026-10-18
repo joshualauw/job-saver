@@ -126,11 +126,9 @@ export interface Extractor<T> {
   extract(payload: PagePayload): Promise<T>;
 }
 
-/** What the assessor judges a job against. The CV and preferences are the user's own. */
+/** What the assessor judges a job against. The preferences are the user's own. */
 export interface AssessmentInput {
   readonly payload: PagePayload;
-  /** Cleaned CV text, or `null` when none is set. */
-  readonly cv: string | null;
   /** One entry per preference; empty when none are set. */
   readonly preferences: readonly string[];
 }

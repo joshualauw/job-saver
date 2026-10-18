@@ -25,9 +25,7 @@ const values = {
   maxSalary: null,
   summary: "Builds APIs.",
   notes: "BPJS; 9-5 working hours",
-  cvFit: "Strong match on the backend stack.",
   preferenceFit: "Yes: Remote work\nNo: Salary above 10M",
-  verdict: "very_high",
 };
 
 describe("asText", () => {
@@ -58,9 +56,7 @@ describe("toSheetRow", () => {
       "",
       "'Builds APIs.",
       "'BPJS; 9-5 working hours",
-      "'Strong match on the backend stack.",
       "'Yes: Remote work\nNo: Salary above 10M",
-      "Very high",
     ]);
   });
 
@@ -221,25 +217,18 @@ describe("columnIndexOf", () => {
 });
 
 describe("assessment columns", () => {
-  it("keep multi-line text and write the verdict as its label", () => {
+  it("keep multi-line text", () => {
     const row = toSheetRow(fields, values, header);
     expect(row[header.indexOf("Preference Fit")]).toBe("'Yes: Remote work\nNo: Salary above 10M");
-    expect(row[header.indexOf("Verdict")]).toBe("Very high");
   });
 
   it("guard assessment text against formula injection like any other text", () => {
-    const row = toSheetRow(fields, { ...values, cvFit: "=IMPORTXML(...)" }, header);
-    expect(row[header.indexOf("CV Fit")]).toBe("'=IMPORTXML(...)");
-  });
-
-  it("read back an unknown verdict label as null", () => {
-    const row = asSheetReturns(toSheetRow(fields, values, header));
-    row[header.indexOf("Verdict")] = "Excellent";
-    expect(fromSheetRow(fields, row, header)["verdict"]).toBeNull();
+    const row = toSheetRow(fields, { ...values, preferenceFit: "=IMPORTXML(...)" }, header);
+    expect(row[header.indexOf("Preference Fit")]).toBe("'=IMPORTXML(...)");
   });
 
   it("are required columns: a sheet without them is reported as missing", () => {
-    const old = header.filter((name) => !["CV Fit", "Preference Fit", "Verdict"].includes(name));
-    expect(() => toSheetRow(fields, values, old)).toThrow(/CV Fit, Preference Fit, Verdict/);
+    const old = header.filter((name) => name !== "Preference Fit");
+    expect(() => toSheetRow(fields, values, old)).toThrow(/Preference Fit/);
   });
 });

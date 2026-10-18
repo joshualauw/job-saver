@@ -17,13 +17,6 @@ const locationTypes = [
   { value: "remote", label: "Remote" },
 ] as const;
 
-const verdicts = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "very_high", label: "Very high" },
-] as const;
-
 const salaryPeriods = [
   { value: "hour", label: "Hour" },
   { value: "day", label: "Day" },
@@ -173,29 +166,12 @@ export const fields = [
     hint: "Specific requirements, perks and conditions outside the core job, as short phrases separated by '; ': e.g. BPJS or insurance, working hours, visa or work-permit requirements, relocation support, bonuses, probation, sister company. Do not repeat the summary or other fields. Null if none are stated.",
   },
   {
-    key: "cvFit",
-    column: "CV Fit",
-    label: "CV fit",
-    type: "text",
-    source: "assessment",
-    nullable: true,
-  },
-  {
     key: "preferenceFit",
     column: "Preference Fit",
     label: "Preference fit",
     type: "text",
     source: "assessment",
     nullable: true,
-  },
-  {
-    key: "verdict",
-    column: "Verdict",
-    label: "Verdict",
-    type: "enum",
-    source: "assessment",
-    nullable: true,
-    options: verdicts,
   },
 ] as const satisfies readonly FieldDef[];
 

@@ -105,10 +105,8 @@ describe("buildJobDraft details", () => {
 
   it("leaves the assessment empty for a new job and never flags it as missing", () => {
     const { values, missing } = buildJobDraft({ source, llm: answerFor("1") });
-    expect(values.cvFit).toBeNull();
     expect(values.preferenceFit).toBeNull();
-    expect(values.verdict).toBeNull();
-    expect(missing).not.toContain("verdict");
+    expect(missing).not.toContain("preferenceFit");
   });
 
   it("normalises skills", () => {
@@ -139,12 +137,12 @@ describe("buildJobDraft details", () => {
       ...answerFor("1"),
       platform: "Evil",
       jobUrl: "https://evil.example",
-      verdict: "very_high",
+      preferenceFit: "Yes: Injected",
     } as unknown as LlmJobValues;
     const { values } = buildJobDraft({ source, llm: hostile });
     expect(values.platform).toBe("Jobstreet");
     expect(values.jobUrl).toBe(source.jobUrl);
-    expect(values.verdict).toBeNull();
+    expect(values.preferenceFit).toBeNull();
   });
 
   describe("refreshing a saved row", () => {
@@ -176,10 +174,9 @@ describe("buildJobDraft details", () => {
       const { values } = buildJobDraft({
         source,
         llm: answerFor("1"),
-        saved: { ...saved, cvFit: "Good match.", verdict: "high" },
+        saved: { ...saved, preferenceFit: "Yes: Remote work" },
       });
-      expect(values.cvFit).toBe("Good match.");
-      expect(values.verdict).toBe("high");
+      expect(values.preferenceFit).toBe("Yes: Remote work");
     });
 
     it("still flags AI fields that are blank in both", () => {
@@ -193,13 +190,17 @@ describe("buildJobDraft details", () => {
     });
 
     it("ignores code-owned values from the model and takes platform and URL from the source", () => {
-      const hostile = { ...answerFor("1"), verdict: "very_high", jobUrl: "https://evil.example" } as unknown as LlmJobValues;
+      const hostile = {
+        ...answerFor("1"),
+        preferenceFit: "Yes: Injected",
+        jobUrl: "https://evil.example",
+      } as unknown as LlmJobValues;
       const { values } = buildJobDraft({ source, llm: hostile, saved });
       expect(values.jobUrl).toBe(source.jobUrl);
-      expect(values.verdict).toBeNull();
+      expect(values.preferenceFit).toBeNull();
     });
 
-    it("takes the model.s values when the saved row has almost nothing", () => {
+    it("takes the model's values when the saved row has almost nothing", () => {
       const { values } = buildJobDraft({
         source,
         llm: answerFor("1"),
