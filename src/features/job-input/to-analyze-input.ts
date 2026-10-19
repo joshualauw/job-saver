@@ -27,18 +27,35 @@ export function toAnalyzeInput(tab: InputTab, contents: TabContents): AnalyzeInp
   }
 }
 
-/** Analyze button text for the active tab. */
-export function analyzeLabel(tab: InputTab, contents: TabContents): string {
+/** Analyze button text for the active tab; `again` is for when a form is already showing. */
+export function analyzeLabel(tab: InputTab, contents: TabContents, again = false): string {
+  const verb = again ? "Re-Analyze" : "Analyze";
   switch (tab) {
     case "text": {
       const length = textLength(contents.text);
-      return length === 0 ? "Analyze" : `Analyze ${length.toLocaleString("en-US")} characters`;
+      return length === 0 ? verb : `${verb} ${length.toLocaleString("en-US")} characters`;
     }
     case "image": {
       const count = contents.images.length;
-      return count === 0 ? "Analyze" : `Analyze ${count} ${count === 1 ? "image" : "images"}`;
+      return count === 0 ? verb : `${verb} ${count} ${count === 1 ? "image" : "images"}`;
     }
     case "file":
-      return contents.file === null ? "Analyze" : `Analyze ${contents.file.name}`;
+      return contents.file === null ? verb : `${verb} ${contents.file.name}`;
+  }
+}
+
+/** One line saying what the active tab holds, for when its content is folded away. */
+export function inputSummary(tab: InputTab, contents: TabContents): string {
+  switch (tab) {
+    case "text": {
+      const length = textLength(contents.text);
+      return length === 0 ? "Text" : `Text · ${length.toLocaleString("en-US")} characters`;
+    }
+    case "image": {
+      const count = contents.images.length;
+      return count === 0 ? "Images" : `${count} ${count === 1 ? "image" : "images"}`;
+    }
+    case "file":
+      return contents.file === null ? "File" : contents.file.name;
   }
 }

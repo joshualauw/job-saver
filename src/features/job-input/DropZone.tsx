@@ -49,7 +49,7 @@ export function DropZone({ accept, multiple, title, hint, onFiles }: Props) {
       borderColor={dragging ? "colorPalette.solid" : "border"}
       bg={dragging ? "bg.muted" : "bg.subtle"}
       rounded="md"
-      p="4"
+      p="3"
       textAlign="center"
       cursor="pointer"
     >

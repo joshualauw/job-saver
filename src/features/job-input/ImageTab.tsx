@@ -42,8 +42,8 @@ export function ImageTab({ images, active, onAdd, onRemove }: Props) {
       <DropZone
         accept={IMAGE_ACCEPT}
         multiple
-        title="Add screenshots of the posting"
-        hint={`Click, drop or paste. Up to ${appConfig.maxImages} images, in reading order.`}
+        title="Add screenshots"
+        hint={`Click, drop or paste. Up to ${appConfig.maxImages}, in reading order.`}
         onFiles={(files) => void take(files)}
       />
 
@@ -61,7 +61,7 @@ export function ImageTab({ images, active, onAdd, onRemove }: Props) {
               <img
                 src={image.dataUrl}
                 alt={image.name}
-                style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6 }}
+                style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6 }}
               />
               <Button
                 type="button"
@@ -84,7 +84,7 @@ export function ImageTab({ images, active, onAdd, onRemove }: Props) {
       )}
 
       <Text fontSize="xs" color="fg.muted">
-        Images are sent to OpenAI to read the text and are not stored. They are forgotten when you close the panel.
+        Sent to OpenAI to read, not stored. Forgotten when you close the panel.
       </Text>
     </Stack>
   );

@@ -32,7 +32,6 @@ export function App() {
   const save = useSaveJob();
   const draft = useDraft();
   const connection = useVerifyConnection();
-  const input = useJobInput();
   // Changes per analysis so the form remounts with the fresh values.
   const [formKey, setFormKey] = useState(0);
   // Why the preference check is missing after an analysis in this panel session; the form is still usable.
@@ -48,6 +47,7 @@ export function App() {
 
   // What the form is showing: a fresh analysis, or the draft restored on reopen.
   const session = draft.current;
+  const input = useJobInput(session !== null);
   // Fetched once a form is on screen, so Google's sign-in prompt (first use only) follows a user action.
   const jobList = useJobList(settings, session !== null);
 
@@ -105,7 +105,7 @@ export function App() {
             <Heading size="md">Job Saver</Heading>
             {view === "job" && (
               <Text mt="1" color="fg.muted">
-                Add a job posting as text, an image or a file, then analyze it.
+                Save job postings from anywhere.
               </Text>
             )}
           </Box>
@@ -141,7 +141,13 @@ export function App() {
               </Alert.Root>
             )}
 
-            <JobInput input={input} onAnalyze={runAnalysis} analyzing={analyze.isPending} blocked={!hasKey} />
+            <JobInput
+              input={input}
+              hasForm={session !== null}
+              onAnalyze={runAnalysis}
+              analyzing={analyze.isPending}
+              blocked={!hasKey}
+            />
 
             {analyze.isError && (
               <Alert.Root status="error">

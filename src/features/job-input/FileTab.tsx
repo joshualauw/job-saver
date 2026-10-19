@@ -30,8 +30,8 @@ export function FileTab({ file, onChange }: Props) {
       <DropZone
         accept={FILE_ACCEPT}
         multiple={false}
-        title="Add a PDF, .txt or .md file"
-        hint="Click or drop one file. A new file replaces the current one."
+        title="Add a file"
+        hint="PDF, .txt or .md. Click or drop one file."
         onFiles={(files) => void take(files)}
       />
 
@@ -54,8 +54,7 @@ export function FileTab({ file, onChange }: Props) {
       )}
 
       <Text fontSize="xs" color="fg.muted">
-        PDFs are sent to OpenAI to read and are not stored. Text files are read here. The file is forgotten when you
-        close the panel.
+        PDFs are sent to OpenAI to read, not stored. Forgotten when you close the panel.
       </Text>
     </Stack>
   );

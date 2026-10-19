@@ -19,10 +19,10 @@ export function TextTab({ text, onChange, onClear }: Props) {
       <Field.Label>Job text</Field.Label>
       <Textarea
         size="sm"
-        rows={9}
+        rows={5}
         value={text}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Paste or type the job posting. Or highlight it on any page, right-click and choose Send to Job Saver."
+        placeholder="Paste a job posting, or right-click selected text and choose Send to Job Saver."
       />
       <HStack justify="space-between" w="full">
         <Text fontSize="xs" color={over ? "fg.warning" : "fg.muted"}>

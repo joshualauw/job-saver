@@ -98,7 +98,34 @@ No behaviour change beyond the removals. Keep commits small.
 - [x] Diff against 1.3.0 for anything else left over (settings, storage keys, permissions, docs claims for Phase 5);
       typecheck, lint and tests pass.
 
-## Phase 5: Docs and release
+## Phase 5: UI polish and form layout
+
+Mostly UI, with a few logic changes (marked). Two chunks: visual tweaks first, then form behaviour. Keep commits small.
+
+Visual
+- [x] Headline: replace "Add a job posting as text, an image or a file, then analyze it" with "Save job postings from anywhere".
+- [x] Shorter input tabs: fewer textarea rows, tighter drop zones, shorter hints.
+- [x] Make the preference fit card slightly more noticeable (tint, accent, stronger title) without overdoing it.
+- [x] In form mode, put the input tabs under an accordion (open with no form, collapsed once a form shows, with a
+      one-line summary such as "Text · 1,234 characters"); the button reads "Re-Analyze".
+      Open question, not built yet: Re-Analyze replaces the form with a fresh result (new job ID) and loses edits, so
+      ask for confirmation only when the form has been edited.
+
+Form behaviour
+- [ ] Loading steps under the Analyze button, in sentences (logic: analyze reports progress). The steps are not strictly
+      sequential: reading an image or file (media only), then filling the form and checking preferences (only when
+      preferences are set) run together, so show a checklist where each line ticks off when its own work finishes.
+- [ ] Side-by-side fields, with the layout declared in the field config (field names live only there): contract type and
+      location type; source and its "Other" text box; salary currency and salary period (swap their order, which also
+      changes the README header line, not the sheet); min and max salary; min years of experience with a fixed "years"
+      label beside the number (a label, not an input).
+- [ ] Skills as a Chakra tags input, converting to and from the existing comma-separated form value and keeping the
+      lowercase and de-duplication rules at save. Check in a browser (the test DOM cannot render it) and watch for
+      shared field IDs, as with the source dropdown.
+- [ ] Tests for the progress steps, the row grouping and the skills conversion; check the form in a browser with a stubbed
+      chrome; typecheck, lint and tests pass.
+
+## Phase 6: Docs and release
 
 - [ ] Rewrite ARCHITECTURE.md (data flow, code map, permissions, security) and the README.
 - [ ] Update CLAUDE.md rules that no longer hold (site-specific config, unlisted page-reading script, fixtures).
@@ -163,3 +190,12 @@ No behaviour change beyond the removals. Keep commits small.
   from source to owner so a field called source does not sit next to it. No compatibility code: the sheet's two
   headers must be renamed by hand in row 1 (Test connection names any that are missing), and a draft stored under
   the old keys loses just those two values. Earlier log entries keep the old names on purpose.
+- Phase 5 is now UI polish and form layout (accordion, loading steps, side-by-side fields, skills tags, fit card,
+  shorter inputs, new headline). The docs and release work moved to Phase 6. Earlier log entries that say "Phase 5"
+  mean the docs rewrite, now Phase 6.
+- Phase 5 visual group built (typecheck, lint, 325 tests pass; checked in a browser with a stubbed chrome: folded and
+  open accordion, summary line, Re-Analyze and Analyze labels, tabs keep their content, tighter tabs, fit card). The
+  headline reads "Save job postings from anywhere." The accordion folds when a form appears and opens again when it is
+  discarded; its content stays mounted so nothing typed or added is lost. Re-Analyze overwrites the form with no
+  confirmation for now: whether to confirm when the form was edited is still open. The form-behaviour group (loading
+  steps, side-by-side fields, skills tags) is next.

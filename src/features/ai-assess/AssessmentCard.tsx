@@ -19,9 +19,20 @@ export function AssessmentCard({ inputs }: Props) {
   if (preferences.length === 0) return null;
 
   return (
-    <Box borderWidth="1px" borderRadius="md" p="3">
+    <Box
+      colorPalette="purple"
+      bg="colorPalette.subtle"
+      borderWidth="1px"
+      borderColor="colorPalette.muted"
+      borderLeftWidth="2px"
+      borderLeftColor="colorPalette.solid"
+      borderRadius="md"
+      p="3"
+    >
       <Stack gap="2">
-        <Text fontWeight="semibold">Fit for you</Text>
+        <Text fontWeight="semibold" color="colorPalette.fg">
+          Fit for you
+        </Text>
         <FitLines lines={preferences} />
       </Stack>
     </Box>
