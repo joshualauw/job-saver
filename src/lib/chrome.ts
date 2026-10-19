@@ -1,51 +1,41 @@
 // Thin wrappers over chrome.* so callers stay mockable and pure modules never touch `chrome`.
 
-export interface ActiveTab {
-  readonly id: number;
-  /** `null` when the extension has no permission to see the tab's URL. */
-  readonly url: string | null;
-}
-
 export function openPanelOnActionClick(): Promise<void> {
   return chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 }
 
-export async function getActiveTab(): Promise<ActiveTab | null> {
-  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (tab?.id === undefined) return null;
-  return { id: tab.id, url: tab.url ?? null };
+const SELECTION_MENU_ID = "send-selection";
+
+/** Adds the right-click item that sends highlighted text to the panel; replaces any earlier copy. */
+export async function createSelectionMenu(title: string): Promise<void> {
+  await chrome.contextMenus.removeAll();
+  chrome.contextMenus.create({ id: SELECTION_MENU_ID, title, contexts: ["selection"] });
 }
 
-/**
- * Calls `onChange` with the active tab whenever the user switches tab or window, or the active
- * tab navigates (including in-page navigation). Returns the unsubscribe function.
- */
-export function watchActiveTab(onChange: (tab: ActiveTab | null) => void): () => void {
-  const notify = () => {
-    void getActiveTab().then(onChange);
-  };
-  const onUpdated = (_tabId: number, info: { url?: string; status?: string }) => {
-    if (info.url !== undefined || info.status === "complete") notify();
-  };
-
-  chrome.tabs.onActivated.addListener(notify);
-  chrome.tabs.onUpdated.addListener(onUpdated);
-  chrome.windows.onFocusChanged.addListener(notify);
-  notify();
-
-  return () => {
-    chrome.tabs.onActivated.removeListener(notify);
-    chrome.tabs.onUpdated.removeListener(onUpdated);
-    chrome.windows.onFocusChanged.removeListener(notify);
-  };
+/** Calls `handler` with the highlighted text when the user picks the right-click item. */
+export function onSelectionMenuClick(handler: (selection: string, tabId: number | undefined) => void): void {
+  chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId === SELECTION_MENU_ID && info.selectionText) handler(info.selectionText, tab?.id);
+  });
 }
 
-/**
- * Asks Chrome for standing access to a site. Must be called straight from a click handler, with
- * nothing awaited first, or Chrome refuses to show the prompt. Resolves `false` if declined.
- */
-export function requestSiteAccess(pattern: string): Promise<boolean> {
-  return chrome.permissions.request({ origins: [pattern] });
+export function onExtensionInstalled(handler: () => void): void {
+  chrome.runtime.onInstalled.addListener(handler);
+}
+
+/** Opens the side panel in a tab. Chrome only allows this straight from a user action. */
+export function openSidePanel(tabId: number): Promise<void> {
+  return chrome.sidePanel.open({ tabId });
+}
+
+/** Calls `onChange` with the new value whenever session storage changes under `key`. Returns the unsubscribe function. */
+export function watchSessionValue(key: string, onChange: (value: unknown) => void): () => void {
+  const listener = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    const change = changes[key];
+    if (area === "session" && change) onChange(change.newValue);
+  };
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
 }
 
 export async function storageGet(key: string): Promise<unknown> {
@@ -81,10 +71,4 @@ export async function getAuthToken(interactive: boolean): Promise<string> {
 
 export async function removeCachedAuthToken(token: string): Promise<void> {
   await chrome.identity.removeCachedAuthToken({ token });
-}
-
-/** Runs a bundled script file in the tab and returns the script's return value. */
-export async function executeScriptFile(tabId: number, file: string): Promise<unknown> {
-  const [injection] = await chrome.scripting.executeScript({ target: { tabId }, files: [file] });
-  return injection?.result;
 }

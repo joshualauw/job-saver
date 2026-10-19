@@ -1,7 +1,5 @@
 import { defineConfig } from "wxt";
 
-import { platformMatchPatterns } from "./src/config/platform-hosts";
-
 // Public half of a throwaway keypair. It pins the extension ID (bpbiemlfmenipkbahfkjhchmdllknhpm)
 // so the Google OAuth client keeps matching across `pnpm dev`, builds and machines.
 const EXTENSION_KEY =
@@ -23,16 +21,12 @@ export default defineConfig({
 
     return {
       name: "Job Saver",
-      description: "Extract job details from the current page with AI and save them to Google Sheets.",
+      description: "Turn highlighted job postings into rows in your Google Sheet, with AI.",
       key: EXTENSION_KEY,
-      // Permissions are added as the features that need them land (see ARCHITECTURE.md).
-      // The panel outlives tab switches but `activeTab` does not (and opening the panel from the
-      // icon does not reliably grant it), so supported platforms get static host access and any
-      // other site is allowed one at a time from the panel (optional host permissions). `tabs`
-      // lets the panel see the active tab's URL on a site it cannot read yet, to ask for that site.
-      permissions: ["storage", "scripting", "activeTab", "identity", "tabs"],
-      host_permissions: [...platformMatchPatterns, "https://api.openai.com/*", "https://sheets.googleapis.com/*"],
-      optional_host_permissions: ["https://*/*", "http://*/*"],
+      // No access to web pages at all: highlighted text arrives through the right-click menu, which
+      // hands it to the extension without any host permission.
+      permissions: ["storage", "identity", "contextMenus"],
+      host_permissions: ["https://api.openai.com/*", "https://sheets.googleapis.com/*"],
       ...(clientId ? { oauth2: { client_id: clientId, scopes: [SHEETS_SCOPE] } } : {}),
       action: { default_title: "Open Job Saver" },
     };

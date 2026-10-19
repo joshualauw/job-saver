@@ -1,20 +1,16 @@
 import { appConfig } from "@/config/app";
 import { jobLlmSchema } from "@/config/fields";
 import type { AssessmentValues, JobFieldKey, LlmJobValues } from "@/config/fields";
-import { platforms } from "@/config/platforms";
-import { AppError, AuthError } from "@/core/errors";
-import { resolveJobSource } from "@/core/job-source";
-import type { PagePayload } from "@/core/page-payload";
+import { AppError, AuthError, InputError } from "@/core/errors";
 import type { AssessmentInput, Assessor, Extractor } from "@/core/types";
 import { createOpenAIAssessor } from "@/features/ai-assess/openai-assessor";
 import { buildJobDraft } from "@/features/ai-extract/draft";
 import { createOpenAIExtractor } from "@/features/ai-extract/openai-extractor";
-import { extractActivePage } from "@/features/page-extract/extract-active-page";
+import { buildSelectionPayload } from "@/features/selection-capture/build-payload";
 import { readSettings } from "@/lib/storage";
 import type { Settings } from "@/lib/storage";
 
 export interface AnalyzeResult {
-  readonly payload: PagePayload;
   /** Values keyed by field key: a fresh AI draft with a newly minted job ID. */
   readonly values: Readonly<Record<string, unknown>>;
   readonly missing: readonly JobFieldKey[];
@@ -25,29 +21,29 @@ export interface AnalyzeResult {
 /** Everything that touches the outside world, injectable so the flow is testable. */
 export interface AnalyzeDeps {
   readonly readSettings: () => Promise<Settings>;
-  readonly extractPage: () => Promise<PagePayload>;
   readonly createExtractor: (options: { apiKey: string; model: string }) => Extractor<LlmJobValues>;
   readonly createAssessor: (options: { apiKey: string; model: string }) => Assessor<AssessmentValues>;
 }
 
 const defaultDeps: AnalyzeDeps = {
   readSettings: () => readSettings(),
-  extractPage: extractActivePage,
   createExtractor: ({ apiKey, model }) => createOpenAIExtractor({ apiKey, model, schema: jobLlmSchema }),
   createAssessor: ({ apiKey, model }) => createOpenAIAssessor({ apiKey, model }),
 };
 
 /**
- * Composition root for "Analyze": read the page, ask the model and merge with what code knows. It
- * never touches the sheet, so it works before one is set up and every run is a fresh draft.
+ * Composition root for "Analyze": ask the model about the highlighted text and merge with what code
+ * knows. It never touches the sheet, so it works before one is set up and every run is a fresh draft.
  */
-export async function analyzeJob(deps: AnalyzeDeps = defaultDeps): Promise<AnalyzeResult> {
+export async function analyzeJob(selection: string, deps: AnalyzeDeps = defaultDeps): Promise<AnalyzeResult> {
   const settings = await deps.readSettings();
   const apiKey = settings.openaiApiKey;
   if (!apiKey) throw new AuthError("Add your OpenAI API key first.");
 
-  const payload = await deps.extractPage();
-  const source = resolveJobSource(payload.url, platforms);
+  const payload = buildSelectionPayload(selection, appConfig.maxPageTextChars);
+  if (payload.description === "") {
+    throw new InputError("Highlight a job posting, right-click and choose Send to Job Saver first.");
+  }
 
   const model = settings.openaiModel ?? appConfig.openaiModel;
 
@@ -59,12 +55,11 @@ export async function analyzeJob(deps: AnalyzeDeps = defaultDeps): Promise<Analy
 
   const llm = await deps.createExtractor({ apiKey, model }).extract(payload);
 
-  const draft = buildJobDraft({ source, llm });
+  const draft = buildJobDraft({ llm });
 
   const assessment = assessing ? await assessing : null;
   const values = assessment?.ok ? { ...draft.values, ...assessment.values } : draft.values;
   return {
-    payload,
     values,
     missing: draft.missing,
     assessmentError: assessment && !assessment.ok ? assessment.message : null,

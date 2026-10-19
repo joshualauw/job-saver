@@ -1,19 +1,15 @@
-import { Alert, Box, Button, Collapsible, Heading, HStack, Skeleton, Stack, Text } from "@chakra-ui/react";
+import { Alert, Box, Button, Heading, HStack, Skeleton, Stack, Text } from "@chakra-ui/react";
 import { useCallback, useMemo, useState } from "react";
 
-import { platforms } from "@/config/platforms";
-import { AppError, PageAccessError } from "@/core/errors";
+import { AppError } from "@/core/errors";
 import { newJobId } from "@/core/job-id";
-import { isSameJobPage } from "@/core/page-match";
-import type { PagePayload } from "@/core/page-payload";
 import { AssessmentCard } from "@/features/ai-assess/AssessmentCard";
 import { JobForm } from "@/features/job-form/JobForm";
 import { toFormInputs } from "@/features/job-form/form-values";
 import type { FormInputs } from "@/features/job-form/form-values";
 import { useDraft } from "@/features/job-form/use-draft";
-import { PagePayloadPreview } from "@/features/page-extract/PagePayloadPreview";
-import { requestSiteAccess } from "@/lib/chrome";
-import { parseHttpUrl, sitePattern } from "@/lib/url";
+import { CapturedSelection } from "@/features/selection-capture/CapturedSelection";
+import { useCapturedSelection } from "@/features/selection-capture/use-captured-selection";
 import { SettingsView } from "@/features/settings/SettingsView";
 import { isSetupComplete } from "@/features/settings/setup-status";
 import { useSettings } from "@/features/settings/use-settings";
@@ -21,25 +17,20 @@ import { useSettings } from "@/features/settings/use-settings";
 import { toaster } from "@/theme/toast";
 
 import { analyzeLabel } from "./analyze-label";
-import { useActiveTabUrl } from "./use-active-tab-url";
 import { useAnalyzeJob } from "./use-analyze-job";
 import { useBackfillIds } from "./use-backfill-ids";
 import { useJobList } from "./use-job-list";
 import { useSaveJob } from "./use-save-job";
-import { useSelectionLength } from "./use-selection-length";
 import { useVerifyConnection } from "./use-verify-connection";
 
 /** What the form is currently showing: a fresh analysis, or a draft restored on reopen. */
 interface Session {
   /** Changes per analysis so the form remounts with fresh values. */
   readonly id: number;
-  readonly url: string;
   readonly inputs: FormInputs;
   readonly missing: readonly string[];
   /** Why the assessment is missing after an attempt; only present for an analysis made in this panel session. */
   readonly assessmentError: string | null;
-  /** Only present for an analysis made in this panel session. */
-  readonly payload: PagePayload | null;
 }
 
 type View = "job" | "settings";
@@ -55,7 +46,7 @@ export function App() {
   const draft = useDraft();
   const connection = useVerifyConnection();
   const backfill = useBackfillIds();
-  const activeUrl = useActiveTabUrl();
+  const selection = useCapturedSelection();
   const [analysis, setAnalysis] = useState<Session | null>(null);
   // Null until the user picks a view, so the first run can open Settings by itself.
   const [chosenView, setChosenView] = useState<View | null>(null);
@@ -65,68 +56,47 @@ export function App() {
   const setupComplete = isSetupComplete(settings);
   const firstRun = chosenView === null && !isLoading && !setupComplete;
   const view: View = chosenView ?? (firstRun ? "settings" : "job");
-  const selectionLength = useSelectionLength(view === "job" && !analyze.isPending);
 
   const restored = useMemo<Session | null>(
     () =>
       draft.restored
         ? {
             id: 0,
-            url: draft.restored.url,
             // A draft saved before job IDs existed has none; the form needs one to save.
             inputs: { ...draft.restored.inputs, jobId: draft.restored.inputs["jobId"] || newJobId() },
             missing: draft.restored.missing,
-            payload: null,
             assessmentError: null,
           }
         : null,
     [draft.restored],
   );
   const session = analysis ?? restored;
-  // Unknown until the first tab answer arrives, so no notice flashes on open.
-  const isStale = session !== null && activeUrl !== undefined && !isSameJobPage(session.url, activeUrl, platforms);
   // Fetched once a form is on screen, so Google's sign-in prompt (first use only) follows a user action.
   const jobList = useJobList(settings, session !== null);
 
   const { persist } = draft;
-  const sessionUrl = session?.url;
   const sessionMissing = session?.missing;
   const handleChange = useCallback(
     (inputs: FormInputs) => {
-      if (sessionUrl !== undefined && sessionMissing !== undefined) {
-        persist({ url: sessionUrl, inputs, missing: [...sessionMissing] });
-      }
+      if (sessionMissing !== undefined) persist({ inputs, missing: [...sessionMissing] });
     },
-    [persist, sessionUrl, sessionMissing],
+    [persist, sessionMissing],
   );
 
   const runAnalysis = () => {
+    if (selection.text === null) return;
     save.reset();
-    analyze.mutate(undefined, {
+    analyze.mutate(selection.text, {
       onSuccess: (result) => {
         const next: Session = {
           id: Date.now(),
-          url: result.payload.url,
           inputs: toFormInputs(result.values),
           missing: result.missing,
-          payload: result.payload,
           assessmentError: result.assessmentError,
         };
-        draft.saveNow({ url: next.url, inputs: next.inputs, missing: [...next.missing] });
+        draft.saveNow({ inputs: next.inputs, missing: [...next.missing] });
         setAnalysis(next);
       },
-    });
-  };
-
-  // The tab's site, when Analyze failed only because the extension may not read it yet.
-  const accessPattern = analyze.error instanceof PageAccessError && activeUrl ? sitePattern(activeUrl) : null;
-  const accessHost = activeUrl ? parseHttpUrl(activeUrl)?.hostname : undefined;
-
-  const allowSite = () => {
-    if (!accessPattern) return;
-    // Chrome only shows the prompt for a call made directly from the click, so nothing is awaited first.
-    void requestSiteAccess(accessPattern).then((granted) => {
-      if (granted) runAnalysis();
     });
   };
 
@@ -142,6 +112,7 @@ export function App() {
       // Done: clear the form so the next Analyze starts fresh.
       onSuccess: (result) => {
         draft.discard();
+        selection.clear();
         setAnalysis(null);
         toaster.create({
           type: "success",
@@ -162,7 +133,7 @@ export function App() {
             <Heading size="md">Job Saver</Heading>
             {view === "job" && (
               <Text mt="1" color="fg.muted">
-                Open a job posting, then analyze it.
+                Send a job posting to the panel, then analyze it.
               </Text>
             )}
           </Box>
@@ -200,13 +171,15 @@ export function App() {
               </Alert.Root>
             )}
 
+            <CapturedSelection text={selection.text} onClear={selection.clear} />
+
             <Button
               onClick={runAnalysis}
               loading={analyze.isPending}
-              loadingText="Reading page and asking AI"
-              disabled={!hasKey}
+              loadingText="Asking AI"
+              disabled={!hasKey || selection.text === null}
             >
-              {analyzeLabel(selectionLength)}
+              {analyzeLabel(selection.text)}
             </Button>
 
             {analyze.isError && (
@@ -214,13 +187,8 @@ export function App() {
                 <Alert.Indicator />
                 <Alert.Content>
                   <Alert.Title>
-                    {errorMessage(analyze.error, "Something went wrong while analyzing the page.")}
+                    {errorMessage(analyze.error, "Something went wrong while analyzing the text.")}
                   </Alert.Title>
-                  {accessPattern && (
-                    <Button size="xs" variant="outline" alignSelf="flex-start" mt="2" onClick={allowSite}>
-                      Allow Job Saver on {accessHost}
-                    </Button>
-                  )}
                 </Alert.Content>
               </Alert.Root>
             )}
@@ -238,18 +206,6 @@ export function App() {
 
             {session && (
               <Stack gap="4">
-                {isStale && (
-                  <Alert.Root status="warning">
-                    <Alert.Indicator />
-                    <Alert.Content>
-                      <Alert.Title>This form is for a different page</Alert.Title>
-                      <Alert.Description>
-                        The tab you are on is not the job below. Analyze this page to replace it, or keep editing.
-                      </Alert.Description>
-                    </Alert.Content>
-                  </Alert.Root>
-                )}
-
                 {session.assessmentError && (
                   <Alert.Root status="warning">
                     <Alert.Indicator />
@@ -275,20 +231,6 @@ export function App() {
                   saveDisabledReason={hasSheet ? null : "Add your Google spreadsheet in Settings to save."}
                 />
 
-                {session.payload && (
-                  <Collapsible.Root>
-                    <Collapsible.Trigger asChild>
-                      <Button variant="ghost" size="sm" alignSelf="flex-start">
-                        Page data
-                      </Button>
-                    </Collapsible.Trigger>
-                    <Collapsible.Content>
-                      <Box pt="2">
-                        <PagePayloadPreview payload={session.payload} />
-                      </Box>
-                    </Collapsible.Content>
-                  </Collapsible.Root>
-                )}
               </Stack>
             )}
           </Stack>

@@ -76,33 +76,6 @@ export type AssessmentValuesOf<Fs extends readonly FieldDef[]> = {
   -readonly [F in Fs[number] as F extends { source: "assessment" } ? F["key"] : never]: FieldValue<F>;
 };
 
-/** Where to find a platform's job content in the page DOM. */
-export interface PlatformContentSelectors {
-  /** Label → CSS selector. The first match's text becomes a labelled fact for the extractor. */
-  readonly facts: Readonly<Record<string, string>>;
-  /** CSS selector of the main job ad body. */
-  readonly description: string;
-}
-
-export interface PlatformDef {
-  /** Stable identifier, e.g. "jobstreet". */
-  readonly id: string;
-  /** Display name written to the sheet's Platform column. */
-  readonly name: string;
-  matchesHost(hostname: string): boolean;
-  /** Returns the clean, canonical job URL for this platform. */
-  canonicalizeUrl(url: URL): URL;
-  /** Absent → the generic whole-page fallback is used. */
-  readonly content?: PlatformContentSelectors;
-}
-
-export interface JobSource {
-  /** Platform name for the Platform column. */
-  readonly platform: string;
-  /** Clean job URL for the Job URL column. */
-  readonly jobUrl: string;
-}
-
 /** A saved job as the Save To picker shows it: identity plus enough text to recognise it. */
 export interface ListedJob {
   readonly id: string;

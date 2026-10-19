@@ -8,14 +8,7 @@ import type { PagePayload } from "@/core/page-payload";
 
 import { createOpenAIExtractor } from "./openai-extractor";
 
-const payload: PagePayload = {
-  url: "https://id.jobstreet.com/id/job/1",
-  title: "Dev - Jobstreet",
-  facts: { Salary: "Rp 70,000 per hour" },
-  description: "Build things.",
-  jsonLd: [],
-  contentSource: "platform",
-};
+const payload: PagePayload = { description: "Build things." };
 
 const aiKeys = fields.filter((field) => field.source === "ai").map((field) => field.key);
 
@@ -73,7 +66,7 @@ describe("createOpenAIExtractor", () => {
     expect(request.store).toBe(false);
     expect(request.input.map((message) => message.role)).toEqual(["system", "user"]);
     expect(request.input[0]?.content).not.toContain("Build things.");
-    expect(request.input[1]?.content).toContain("Salary: Rp 70,000 per hour");
+    expect(request.input[1]?.content).toContain("<job_description>\nBuild things.\n</job_description>");
 
     const { format } = request.text;
     expect(format.type).toBe("json_schema");

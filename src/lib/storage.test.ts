@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { clearDraft, readDraft, readSettings, writeDraft, writeSettings } from "./storage";
+import {
+  clearCapturedSelection,
+  clearDraft,
+  parseCapturedSelection,
+  readCapturedSelection,
+  readDraft,
+  readSettings,
+  writeCapturedSelection,
+  writeDraft,
+  writeSettings,
+} from "./storage";
 import type { StorageAdapter } from "./storage";
 
 function memoryAdapter(initial: Record<string, unknown> = {}) {
@@ -75,7 +85,6 @@ describe("preferences in settings", () => {
 
 describe("draft storage", () => {
   const draft = {
-    url: "https://id.jobstreet.com/id/job/1",
     inputs: { company: "Ryvo", skills: "node.js" },
     missing: ["address"],
   };
@@ -99,11 +108,34 @@ describe("draft storage", () => {
 
   it.each([
     ["a string", "oops"],
-    ["non-string inputs", { url: "u", inputs: { company: 1 }, missing: [] }],
-    ["missing fields", { url: "u" }],
+    ["non-string inputs", { inputs: { company: 1 }, missing: [] }],
+    ["missing fields", { inputs: {} }],
   ])("treats %s as no draft", async (_label, stored) => {
     const { adapter } = memoryAdapter({ draft: stored });
     expect(await readDraft(adapter)).toBeNull();
+  });
+});
+
+describe("captured selection storage", () => {
+  it("reads null when nothing was sent", async () => {
+    expect(await readCapturedSelection(memoryAdapter().adapter)).toBeNull();
+  });
+
+  it("round-trips the text and clears it", async () => {
+    const { adapter } = memoryAdapter();
+    await writeCapturedSelection("Build things.\n\nWith care.", adapter);
+    expect(await readCapturedSelection(adapter)).toBe("Build things.\n\nWith care.");
+    await clearCapturedSelection(adapter);
+    expect(await readCapturedSelection(adapter)).toBeNull();
+  });
+
+  it.each([
+    ["a string", "oops"],
+    ["blank text", { text: "   " }],
+    ["non-string text", { text: 1 }],
+    ["nothing", undefined],
+  ])("treats %s as no selection", (_label, stored) => {
+    expect(parseCapturedSelection(stored)).toBeNull();
   });
 });
 

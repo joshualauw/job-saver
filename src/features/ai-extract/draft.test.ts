@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { LlmJobValues } from "@/config/fields";
-import { platforms } from "@/config/platforms";
-import { resolveJobSource } from "@/core/job-source";
-
-import { loadFixture } from "../../../tests/helpers/fixtures";
 
 import { buildJobDraft } from "./draft";
 
-// Hand-written model answers for the saved Jobstreet pages (no network in tests).
+// Hand-written model answers (no network in tests).
 const ANSWERS: Record<string, LlmJobValues> = {
   "1": {
     company: "Global Business Group Indonesia",
@@ -57,32 +53,14 @@ const ANSWERS: Record<string, LlmJobValues> = {
   },
 };
 
-const JOB_URLS: Record<string, string> = {
-  "1": "https://id.jobstreet.com/id/job/95287163",
-  "2": "https://id.jobstreet.com/id/job/95080817",
-  "3": "https://id.jobstreet.com/id/job/94811596",
-};
-
 function answerFor(name: string): LlmJobValues {
   const answer = ANSWERS[name];
-  if (!answer) throw new Error(`no canned answer for fixture ${name}`);
+  if (!answer) throw new Error(`no canned answer for ${name}`);
   return answer;
 }
 
-function sourceFor(name: string) {
-  return resolveJobSource(loadFixture("jobstreet", name).url, platforms);
-}
-
-describe.each(["1", "2", "3"])("buildJobDraft for Jobstreet fixture %s", (name) => {
-  const { values, missing } = buildJobDraft({
-    source: sourceFor(name),
-    llm: answerFor(name),
-  });
-
-  it("fills code-owned fields from the URL and defaults", () => {
-    expect(values.platform).toBe("Jobstreet");
-    expect(values.jobUrl).toBe(JOB_URLS[name]);
-  });
+describe.each(["1", "2", "3"])("buildJobDraft for answer %s", (name) => {
+  const { values, missing } = buildJobDraft({ llm: answerFor(name) });
 
   it("keeps the model's values and normalises skills", () => {
     const answer = answerFor(name);
@@ -101,17 +79,22 @@ describe.each(["1", "2", "3"])("buildJobDraft for Jobstreet fixture %s", (name) 
 });
 
 describe("buildJobDraft details", () => {
-  const source = { platform: "Jobstreet", jobUrl: "https://id.jobstreet.com/id/job/1" };
+  it("leaves platform and job URL for the user, without flagging them", () => {
+    const { values, missing } = buildJobDraft({ llm: answerFor("1") });
+    expect(values.platform).toBeNull();
+    expect(values.jobUrl).toBeNull();
+    expect(missing).not.toContain("platform");
+    expect(missing).not.toContain("jobUrl");
+  });
 
   it("leaves the assessment empty for a new job and never flags it as missing", () => {
-    const { values, missing } = buildJobDraft({ source, llm: answerFor("1") });
+    const { values, missing } = buildJobDraft({ llm: answerFor("1") });
     expect(values.preferenceFit).toBeNull();
     expect(missing).not.toContain("preferenceFit");
   });
 
   it("normalises skills", () => {
     const { values } = buildJobDraft({
-      source,
       llm: { ...answerFor("1"), skills: ["Node.js", " TypeScript ", "node.js"] },
     });
     expect(values.skills).toEqual(["node.js", "typescript"]);
@@ -119,7 +102,6 @@ describe("buildJobDraft details", () => {
 
   it("turns blank strings into null and lists them as missing", () => {
     const { values, missing } = buildJobDraft({
-      source,
       llm: { ...answerFor("3"), company: "  ", address: null },
     });
     expect(values.company).toBeNull();
@@ -128,42 +110,34 @@ describe("buildJobDraft details", () => {
   });
 
   it("does not count an empty skills list as missing", () => {
-    const { missing } = buildJobDraft({ source, llm: { ...answerFor("3"), skills: [] } });
+    const { missing } = buildJobDraft({ llm: { ...answerFor("3"), skills: [] } });
     expect(missing).not.toContain("skills");
   });
 
-  it("never lets the model set code-owned fields", () => {
+  it("never lets the model set code-owned or user-owned fields", () => {
     const hostile = {
       ...answerFor("1"),
       platform: "Evil",
       jobUrl: "https://evil.example",
       preferenceFit: "Yes: Injected",
     } as unknown as LlmJobValues;
-    const { values } = buildJobDraft({ source, llm: hostile });
-    expect(values.platform).toBe("Jobstreet");
-    expect(values.jobUrl).toBe(source.jobUrl);
+    const { values } = buildJobDraft({ llm: hostile });
+    expect(values.platform).toBeNull();
+    expect(values.jobUrl).toBeNull();
     expect(values.preferenceFit).toBeNull();
   });
 
   it("mints a job ID in code and ignores one the model tries to supply", () => {
     const hostile = { ...answerFor("1"), jobId: "from-the-model" } as unknown as LlmJobValues;
-    const { values, missing } = buildJobDraft({ source, llm: hostile, newId: () => "fresh0000001" });
+    const { values, missing } = buildJobDraft({ llm: hostile, newId: () => "fresh0000001" });
     expect(values.jobId).toBe("fresh0000001");
     expect(missing).not.toContain("jobId");
   });
 
   it("gives every draft its own job ID by default", () => {
-    const first = buildJobDraft({ source, llm: answerFor("1") }).values.jobId;
-    const second = buildJobDraft({ source, llm: answerFor("1") }).values.jobId;
+    const first = buildJobDraft({ llm: answerFor("1") }).values.jobId;
+    const second = buildJobDraft({ llm: answerFor("1") }).values.jobId;
     expect(first).toMatch(/^[a-z0-9]{12}$/);
     expect(second).not.toBe(first);
-  });
-
-  it("leaves platform and jobUrl empty, without flagging them, when the URL is unusable", () => {
-    const { values, missing } = buildJobDraft({ source: null, llm: answerFor("1") });
-    expect(values.platform).toBeNull();
-    expect(values.jobUrl).toBeNull();
-    expect(missing).not.toContain("platform");
-    expect(missing).not.toContain("jobUrl");
   });
 });

@@ -2,7 +2,6 @@ import { fields } from "@/config/fields";
 import type { JobFieldKey, JobValues, LlmJobValues } from "@/config/fields";
 import { newJobId } from "@/core/job-id";
 import { normalizeList } from "@/core/normalize";
-import type { JobSource } from "@/core/types";
 
 /**
  * Proposed values for the form. Scalars may be `null` until the user fills them in; the form
@@ -13,8 +12,6 @@ export type JobDraft = {
 };
 
 export interface BuildDraftInput {
-  /** Derived from the page URL; `null` when the URL is not usable. */
-  readonly source: JobSource | null;
   readonly llm: LlmJobValues;
   /** Injectable for tests; defaults to a random ID. */
   readonly newId?: () => string;
@@ -26,8 +23,6 @@ export interface BuildDraftResult {
   readonly missing: readonly JobFieldKey[];
 }
 
-const PLATFORM_KEY = "platform" satisfies JobFieldKey;
-const JOB_URL_KEY = "jobUrl" satisfies JobFieldKey;
 const JOB_ID_KEY = "jobId" satisfies JobFieldKey;
 const SKILLS_KEY = "skills" satisfies JobFieldKey;
 
@@ -38,10 +33,10 @@ function isBlank(value: unknown): boolean {
 const AI_KEYS: ReadonlySet<string> = new Set(fields.filter((field) => field.source === "ai").map((field) => field.key));
 
 /**
- * Merges what code knows (a fresh job ID, platform, clean URL) with what the model returned.
- * Code-owned fields always win, and the model never sets them.
+ * Merges what code knows (a fresh job ID) with what the model returned. Code-owned fields
+ * always win, and the model never sets them. Platform and job URL are the user's to fill in.
  */
-export function buildJobDraft({ source, llm, newId = newJobId }: BuildDraftInput): BuildDraftResult {
+export function buildJobDraft({ llm, newId = newJobId }: BuildDraftInput): BuildDraftResult {
   const merged: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries({ ...llm, [SKILLS_KEY]: normalizeList(llm.skills) })) {
@@ -49,8 +44,6 @@ export function buildJobDraft({ source, llm, newId = newJobId }: BuildDraftInput
   }
 
   merged[JOB_ID_KEY] = newId();
-  merged[PLATFORM_KEY] = source?.platform ?? null;
-  merged[JOB_URL_KEY] = source?.jobUrl ?? null;
 
   const missing: JobFieldKey[] = [];
   for (const field of fields) {

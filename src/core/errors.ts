@@ -1,4 +1,4 @@
-export type ErrorCode = "auth" | "rate_limit" | "schema" | "network" | "missing_columns" | "page_access" | "unexpected";
+export type ErrorCode = "auth" | "rate_limit" | "schema" | "network" | "missing_columns" | "input" | "unexpected";
 
 /** Base class: `message` is always safe to show to the user. */
 export class AppError extends Error {
@@ -42,10 +42,10 @@ export class UnexpectedError extends AppError {
   }
 }
 
-/** The current tab cannot be read (restricted page, or no permission for this tab). */
-export class PageAccessError extends AppError {
+/** There is nothing usable to analyze (for example no text has been sent to the panel yet). */
+export class InputError extends AppError {
   constructor(message: string, options?: { cause?: unknown }) {
-    super("page_access", message, options);
+    super("input", message, options);
   }
 }
 

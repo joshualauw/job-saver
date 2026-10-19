@@ -1,26 +1,14 @@
 import type OpenAI from "openai";
 import { describe, expect, it, vi } from "vitest";
 
-import { appConfig } from "@/config/app";
-import { platforms } from "@/config/platforms";
 import { AuthError, NetworkError, RateLimitError, SchemaError } from "@/core/errors";
 import type { PagePayload } from "@/core/page-payload";
 import type { AssessmentInput } from "@/core/types";
-import { buildPagePayload } from "@/features/page-extract/extract-page";
-
-import { loadFixture } from "../../../tests/helpers/fixtures";
 
 import { createOpenAIAssessor } from "./openai-assessor";
 import type { AssessmentAnswer } from "./schema";
 
-const payload: PagePayload = {
-  url: "https://id.jobstreet.com/id/job/1",
-  title: "Dev - Jobstreet",
-  facts: { Salary: "Rp 70,000 per hour" },
-  description: "Build things with Node.js.",
-  jsonLd: [],
-  contentSource: "platform",
-};
+const payload: PagePayload = { description: "Build things with Node.js." };
 
 const PREFERENCE = "Experience with secret-preference-marker";
 const input: AssessmentInput = { payload, preferences: ["Remote work", PREFERENCE] };
@@ -105,23 +93,5 @@ describe("createOpenAIAssessor", () => {
       .catch((cause: unknown) => cause);
     expect(network).toBeInstanceOf(NetworkError);
     expect((network as NetworkError).message).not.toContain("secret-preference-marker");
-  });
-});
-
-describe.each(["1", "2", "3"])("assessing the Jobstreet fixture %s", (name) => {
-  const page = buildPagePayload(loadFixture("jobstreet", name).document, {
-    platforms,
-    maxChars: appConfig.maxPageTextChars,
-    selection: null,
-  });
-
-  it("sends the page's facts and description and maps a hand-written answer", async () => {
-    const { client, parse } = fakeClient({ output: [], output_parsed: answer });
-    const values = await assessor(client).assess({ ...input, payload: page });
-
-    const user = (parse.mock.calls[0]?.[0] as { input: { content: string }[] }).input[1]?.content ?? "";
-    expect(user).toContain("<job_description>");
-    expect(user).toContain(Object.keys(page.facts)[0] ?? "<facts>");
-    expect(values.preferenceFit?.split("\n")).toHaveLength(2);
   });
 });

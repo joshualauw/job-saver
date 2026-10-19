@@ -4,14 +4,7 @@ import type { PagePayload } from "@/core/page-payload";
 
 import { buildPrompt, buildSystemPrompt, buildUserPrompt } from "./prompt";
 
-const payload: PagePayload = {
-  url: "https://id.jobstreet.com/id/job/1?ref=x",
-  title: "Backend Engineer Job - Jobstreet",
-  facts: { "Job title": "Backend Engineer", Salary: "Rp 7.000.000 – Rp 9.000.000 per month" },
-  description: "Build services.\n\n- Node.js\n- Postgres",
-  jsonLd: [],
-  contentSource: "platform",
-};
+const payload: PagePayload = { description: "Build services.\n\n- Node.js\n- Postgres" };
 
 describe("buildSystemPrompt", () => {
   it("states the untrusted-content, never-guess and salary rules", () => {
@@ -66,27 +59,12 @@ describe("buildSystemPrompt", () => {
 });
 
 describe("buildUserPrompt", () => {
-  it("fences url, title, facts and description", () => {
-    const user = buildUserPrompt(payload);
-    expect(user).toContain("<page_url>\nhttps://id.jobstreet.com/id/job/1?ref=x\n</page_url>");
-    expect(user).toContain("<page_title>\nBackend Engineer Job - Jobstreet\n</page_title>");
-    expect(user).toContain(
-      "<facts>\nJob title: Backend Engineer\nSalary: Rp 7.000.000 – Rp 9.000.000 per month\n</facts>",
-    );
-    expect(user).toContain("<job_description>\nBuild services.");
+  it("fences the description and nothing else", () => {
+    expect(buildUserPrompt(payload)).toBe("<job_description>\nBuild services.\n\n- Node.js\n- Postgres\n</job_description>");
   });
 
-  it("omits empty sections", () => {
-    const user = buildUserPrompt({ ...payload, title: " ", facts: {}, description: "", jsonLd: [] });
-    expect(user).toBe("<page_url>\nhttps://id.jobstreet.com/id/job/1?ref=x\n</page_url>");
-  });
-
-  it("includes JSON-LD only when present, and caps its size", () => {
-    expect(buildUserPrompt(payload)).not.toContain("<json_ld>");
-    const big = [{ "@type": "JobPosting", description: "x".repeat(10_000) }];
-    const user = buildUserPrompt({ ...payload, jsonLd: big });
-    const body = user.split("<json_ld>\n")[1]?.split("\n</json_ld>")[0] ?? "";
-    expect(body.length).toBeLessThanOrEqual(4_000);
+  it("sends nothing for an empty description", () => {
+    expect(buildUserPrompt({ description: "  " })).toBe("");
   });
 
   it("keeps an injection attempt inside the fence", () => {

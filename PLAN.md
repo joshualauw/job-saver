@@ -51,14 +51,14 @@ Decisions already made:
 
 ## Phase 3: Selection-only, remove page analysis
 
-- [ ] Replace page reading with "get the current selection" (context-menu item and/or the Analyze button).
+- [~] Replace page reading with "get the current selection": built as a right-click "Send to Job Saver" item (chosen over the Analyze-button route; no host permissions).
       Check that line breaks survive the capture; pick the method that keeps them.
-- [ ] Delete platform config, host matching, URL cleaning, job-source resolution, DOM-text cleaning, JSON-LD,
+- [x] Delete platform config, host matching, URL cleaning, job-source resolution, DOM-text cleaning, JSON-LD,
       the page-extract internals and the platform fixtures and their tests.
-- [ ] Remove the optional-host-permission flow and the static host access from the manifest; keep only what
+- [x] Remove the optional-host-permission flow and the static host access from the manifest; keep only what
       selection capture needs.
-- [ ] Shrink the page payload to text plus optional title; drop facts, JSON-LD and content source.
-- [ ] Simplify the prompts: no facts or page-URL sections, and reword the site-specific location rule.
+- [x] Shrink the page payload to text plus optional title; drop facts, JSON-LD and content source.
+- [x] Simplify the prompts: no facts or page-URL sections, and reword the site-specific location rule.
 
 Ordering note: if you never want to be without a way to input text, build the Phase 4 text box before
 this phase.
@@ -105,3 +105,11 @@ this phase.
   select. Fixed by giving the text box its own ID (it now also takes focus). Verified in a browser for Other
   and for switching back to a template value. Not covered by an automated test: the test DOM (happy-dom) cannot
   render this dropdown.
+- Phase 3 built (typecheck, lint, tests pass; the panel's captured-text card and Clear were checked in a browser with a
+  stubbed `chrome`). Decision: capture is the right-click menu only, so the extension asks for no host permissions
+  (permissions are now storage, identity, contextMenus and the side panel). Still unverified in real Chrome, because
+  it cannot be run from here: that the right-click item opens the panel and fills it, and whether the menu's text
+  keeps line breaks (check this when trying the build; the model copes with flattened text but bullet lists read worse).
+  Left for later: the payload type keeps its old name for now (Phase 4's text-to-payload builder is the place to
+  rename it); README, ARCHITECTURE.md and CLAUDE.md still describe page reading and platforms (Phase 5). With no
+  text box yet, right-click is the only way to give the panel text until Phase 4.

@@ -4,6 +4,8 @@ import { sessionGet, sessionSet, storageGet, storageSet } from "./chrome";
 
 const SETTINGS_KEY = "settings";
 const DRAFT_KEY = "draft";
+/** Session-storage key the background worker writes the right-clicked selection to. */
+export const SELECTION_KEY = "selection";
 
 const optionalText = z.string().trim().optional();
 
@@ -56,8 +58,6 @@ export async function writeSettings(patch: Settings, adapter: StorageAdapter = c
 
 /** The review form's in-progress state: strings exactly as shown in the form. */
 export const draftSchema = z.object({
-  /** Raw URL of the page the draft was made from. */
-  url: z.string(),
   inputs: z.record(z.string(), z.string()),
   /** Keys of fields the AI could not find, for "not found" flags. */
   missing: z.array(z.string()),
@@ -80,4 +80,25 @@ export async function writeDraft(draft: StoredDraft, adapter: StorageAdapter = s
 /** Writing `null` is "no draft"; `readDraft` rejects it. */
 export async function clearDraft(adapter: StorageAdapter = sessionAdapter): Promise<void> {
   await adapter.set(DRAFT_KEY, null);
+}
+
+const selectionSchema = z.object({ text: z.string() });
+
+/** The text last sent to the panel with the right-click menu; `null` when there is none. */
+export async function readCapturedSelection(adapter: StorageAdapter = sessionAdapter): Promise<string | null> {
+  return parseCapturedSelection(await adapter.get(SELECTION_KEY));
+}
+
+export async function writeCapturedSelection(text: string, adapter: StorageAdapter = sessionAdapter): Promise<void> {
+  await adapter.set(SELECTION_KEY, { text });
+}
+
+export async function clearCapturedSelection(adapter: StorageAdapter = sessionAdapter): Promise<void> {
+  await adapter.set(SELECTION_KEY, null);
+}
+
+/** Reads a raw session value (from a storage change event) the same way `readCapturedSelection` does. */
+export function parseCapturedSelection(value: unknown): string | null {
+  const parsed = selectionSchema.safeParse(value);
+  return parsed.success && parsed.data.text.trim() !== "" ? parsed.data.text : null;
 }

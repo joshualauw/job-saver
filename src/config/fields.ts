@@ -86,7 +86,7 @@ export const fields = [
     source: "ai",
     nullable: true,
     options: locationTypes,
-    hint: "Remote or hybrid only when the posting says so (e.g. remote, jarak jauh, hybrid); otherwise onsite. Jobstreet postings are mostly onsite and rarely state it, so default to onsite rather than null.",
+    hint: "Remote or hybrid only when the posting says so (e.g. remote, jarak jauh, hybrid); otherwise onsite. Most postings are onsite and rarely state it, so default to onsite rather than null.",
   },
   {
     key: "platform",

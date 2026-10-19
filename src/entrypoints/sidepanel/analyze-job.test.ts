@@ -2,22 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { appConfig } from "@/config/app";
 import type { AssessmentValues, LlmJobValues } from "@/config/fields";
-import { AuthError, NetworkError, PageAccessError, RateLimitError } from "@/core/errors";
+import { AuthError, InputError, NetworkError, RateLimitError } from "@/core/errors";
 import type { PagePayload } from "@/core/page-payload";
 
 import { analyzeJob } from "./analyze-job";
 import type { AnalyzeDeps } from "./analyze-job";
 
-const payload: PagePayload = {
-  url: "https://id.jobstreet.com/id/job/95287163?ref=recom-homepage#sol=abc",
-  title: "Dev - Jobstreet",
-  facts: { Salary: "Rp 70,000 per hour" },
-  description: "Build things.",
-  jsonLd: [],
-  contentSource: "platform",
-};
-
-const CLEAN_URL = "https://id.jobstreet.com/id/job/95287163";
+const SELECTION = "  Build   things.  ";
+const payload: PagePayload = { description: "Build things." };
 
 const answer: LlmJobValues = {
   company: "Ryvo",
@@ -44,52 +36,55 @@ function deps(overrides: Partial<AnalyzeDeps> = {}) {
   const createAssessor = vi.fn().mockReturnValue({ assess });
   const extract = vi.fn().mockResolvedValue(answer);
   const createExtractor = vi.fn().mockReturnValue({ extract });
-  const extractPage = vi.fn().mockResolvedValue(payload);
   const all: AnalyzeDeps = {
     readSettings: () => Promise.resolve({ openaiApiKey: "sk-test" }),
-    extractPage,
     createExtractor,
     createAssessor,
     ...overrides,
   };
-  return { all, extract, createExtractor, createAssessor, assess, extractPage };
+  return { all, extract, createExtractor, createAssessor, assess };
 }
 
 describe("analyzeJob", () => {
-  it("fails with AuthError before touching the page when no key is saved", async () => {
-    const { all, extractPage } = deps({ readSettings: () => Promise.resolve({}) });
-    await expect(analyzeJob(all)).rejects.toBeInstanceOf(AuthError);
-    expect(extractPage).not.toHaveBeenCalled();
+  it("fails with AuthError before asking the model when no key is saved", async () => {
+    const { all, createExtractor } = deps({ readSettings: () => Promise.resolve({}) });
+    await expect(analyzeJob(SELECTION, all)).rejects.toBeInstanceOf(AuthError);
+    expect(createExtractor).not.toHaveBeenCalled();
   });
 
-  it("reads the page, asks the model, and merges code-owned fields", async () => {
+  it("fails with an InputError, without calling the model, when there is no text", async () => {
+    const { all, createExtractor } = deps();
+    await expect(analyzeJob("   \n ", all)).rejects.toBeInstanceOf(InputError);
+    expect(createExtractor).not.toHaveBeenCalled();
+  });
+
+  it("sends the cleaned selection to the model and merges code-owned fields", async () => {
     const { all, extract, createExtractor } = deps();
-    const result = await analyzeJob(all);
+    const result = await analyzeJob(SELECTION, all);
 
     expect(extract).toHaveBeenCalledWith(payload);
     expect(createExtractor).toHaveBeenCalledWith({ apiKey: "sk-test", model: appConfig.openaiModel });
-    expect(result.payload).toBe(payload);
-    expect(result.values.platform).toBe("Jobstreet");
-    expect(result.values.jobUrl).toBe(CLEAN_URL);
+    expect(result.values.platform).toBeNull();
+    expect(result.values.jobUrl).toBeNull();
     expect(result.values.skills).toEqual(["node.js"]);
     expect(result.missing).toContain("address");
   });
 
-  it("gives every analysis a new job ID, even for the same page", async () => {
+  it("gives every analysis a new job ID, even for the same text", async () => {
     const { all } = deps();
-    const first = await analyzeJob(all);
-    const second = await analyzeJob(all);
+    const first = await analyzeJob(SELECTION, all);
+    const second = await analyzeJob(SELECTION, all);
 
     expect(first.values.jobId).toMatch(/^[a-z0-9]{12}$/);
     expect(second.values.jobId).not.toBe(first.values.jobId);
   });
 
-  it("runs without a spreadsheet and never asks the model again for a page it has seen", async () => {
+  it("runs without touching a spreadsheet, and asks the model every time", async () => {
     const { all, extract } = deps({
       readSettings: () => Promise.resolve({ openaiApiKey: "sk-test", spreadsheetId: "sheet-id" }),
     });
-    await analyzeJob(all);
-    await analyzeJob(all);
+    await analyzeJob(SELECTION, all);
+    await analyzeJob(SELECTION, all);
     expect(extract).toHaveBeenCalledTimes(2);
   });
 
@@ -97,16 +92,8 @@ describe("analyzeJob", () => {
     const { all, createExtractor } = deps({
       readSettings: () => Promise.resolve({ openaiApiKey: "sk-test", openaiModel: "my-model" }),
     });
-    await analyzeJob(all);
+    await analyzeJob(SELECTION, all);
     expect(createExtractor).toHaveBeenCalledWith({ apiKey: "sk-test", model: "my-model" });
-  });
-
-  it("does not call the model when the page cannot be read", async () => {
-    const { all, createExtractor } = deps({
-      extractPage: () => Promise.reject(new PageAccessError("no access")),
-    });
-    await expect(analyzeJob(all)).rejects.toBeInstanceOf(PageAccessError);
-    expect(createExtractor).not.toHaveBeenCalled();
   });
 });
 
@@ -115,7 +102,7 @@ const withPreferences = () => Promise.resolve({ openaiApiKey: "sk-test", prefere
 describe("analyzeJob with the assessor", () => {
   it("does not assess when no preferences are set", async () => {
     const { all, createAssessor } = deps();
-    const result = await analyzeJob(all);
+    const result = await analyzeJob(SELECTION, all);
 
     expect(createAssessor).not.toHaveBeenCalled();
     expect(result.values.preferenceFit).toBeNull();
@@ -124,7 +111,7 @@ describe("analyzeJob with the assessor", () => {
 
   it("assesses with preferences and merges the result into the values", async () => {
     const { all, assess, createAssessor } = deps({ readSettings: withPreferences });
-    const result = await analyzeJob(all);
+    const result = await analyzeJob(SELECTION, all);
 
     expect(createAssessor).toHaveBeenCalledWith({ apiKey: "sk-test", model: appConfig.openaiModel });
     expect(assess).toHaveBeenCalledOnce();
@@ -137,7 +124,7 @@ describe("analyzeJob with the assessor", () => {
       readSettings: () =>
         Promise.resolve({ openaiApiKey: "sk-test", openaiModel: "my-model", preferences: ["Remote work"] }),
     });
-    await analyzeJob(all);
+    await analyzeJob(SELECTION, all);
 
     expect(createAssessor).toHaveBeenCalledWith({ apiKey: "sk-test", model: "my-model" });
     expect(assess).toHaveBeenCalledWith({ payload, preferences: ["Remote work"] });
@@ -148,7 +135,7 @@ describe("analyzeJob with the assessor", () => {
     const extract = vi.fn().mockReturnValue(new Promise<LlmJobValues>((resolve) => (finishExtraction = resolve)));
     const { all, assess } = deps({ readSettings: withPreferences, createExtractor: () => ({ extract }) });
 
-    const running = analyzeJob(all);
+    const running = analyzeJob(SELECTION, all);
     await vi.waitFor(() => expect(assess).toHaveBeenCalledOnce());
     expect(extract).toHaveBeenCalledOnce();
 
@@ -160,7 +147,7 @@ describe("analyzeJob with the assessor", () => {
     const { all, assess } = deps({ readSettings: withPreferences });
     assess.mockRejectedValue(new RateLimitError("OpenAI rate limit or quota reached."));
 
-    const result = await analyzeJob(all);
+    const result = await analyzeJob(SELECTION, all);
 
     expect(result.values.company).toBe("Ryvo");
     expect(result.values.preferenceFit).toBeNull();
@@ -171,7 +158,7 @@ describe("analyzeJob with the assessor", () => {
     const { all, assess } = deps({ readSettings: withPreferences });
     assess.mockRejectedValue(new Error("secret-preference-marker"));
 
-    const result = await analyzeJob(all);
+    const result = await analyzeJob(SELECTION, all);
 
     expect(result.assessmentError).toBe("Something went wrong while judging this job.");
     expect(result.assessmentError).not.toContain("secret-preference-marker");
@@ -182,7 +169,7 @@ describe("analyzeJob with the assessor", () => {
     const { all, assess } = deps({ readSettings: withPreferences, createExtractor: () => ({ extract }) });
     assess.mockRejectedValue(new RateLimitError("limited"));
 
-    await expect(analyzeJob(all)).rejects.toBeInstanceOf(NetworkError);
+    await expect(analyzeJob(SELECTION, all)).rejects.toBeInstanceOf(NetworkError);
     await vi.waitFor(() => expect(assess).toHaveBeenCalledOnce());
   });
 });

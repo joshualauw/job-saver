@@ -5,14 +5,7 @@ import type { PagePayload } from "@/core/page-payload";
 
 import { buildPrompt, buildSystemPrompt, buildUserPrompt } from "./prompt";
 
-const payload: PagePayload = {
-  url: "https://id.jobstreet.com/id/job/1",
-  title: "Backend Engineer - Jobstreet",
-  facts: { Salary: "Rp 7.000.000 per month" },
-  description: "Build services with Node.js.",
-  jsonLd: [],
-  contentSource: "platform",
-};
+const payload: PagePayload = { description: "Build services with Node.js." };
 
 const input: AssessmentInput = {
   payload,
@@ -59,14 +52,14 @@ describe("buildUserPrompt", () => {
   it("puts the numbered preferences before the posting", () => {
     const user = buildUserPrompt(input);
     expect(user).toContain("<preferences>\n1. Remote work\n2. Salary above 10M\n</preferences>");
-    expect(user.indexOf("<preferences>")).toBeLessThan(user.indexOf("<page_url>"));
+    expect(user.indexOf("<preferences>")).toBeLessThan(user.indexOf("<job_description>"));
     expect(user).toContain("<job_description>\nBuild services with Node.js.\n</job_description>");
   });
 
   it("leaves out the preference block when there are none", () => {
     const user = buildUserPrompt({ payload, preferences: [] });
     expect(user).not.toContain("<preferences>");
-    expect(user).toContain("<page_url>");
+    expect(user).toContain("<job_description>");
   });
 
   it("keeps hostile posting text inside its fence", () => {
