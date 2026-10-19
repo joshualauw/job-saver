@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /** Two answers only: something the posting does not show counts as "no", never as "unknown". */
-export const FIT_ANSWERS = ["yes", "no"] as const;
+const FIT_ANSWERS = ["yes", "no"] as const;
 export type FitAnswer = (typeof FIT_ANSWERS)[number];
 
 /**

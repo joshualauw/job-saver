@@ -49,9 +49,7 @@ function fakeClient(tabValues: unknown[][] | undefined, appendResponse: unknown 
   const get = vi.fn().mockResolvedValue({ values: tabValues });
   const post = vi.fn().mockResolvedValue(appendResponse);
   const client = { get, post } as unknown as SheetsClient;
-  let next = 0;
-  const newId = () => `generated${String(++next).padStart(3, "0")}`;
-  return { sink: createSheetsSink({ tab: "Jobs", client, newId }), get, post };
+  return { sink: createSheetsSink({ tab: "Jobs", client }), get, post };
 }
 
 describe("sheets sink: list", () => {
@@ -69,8 +67,8 @@ describe("sheets sink: list", () => {
       `values/${encodeURIComponent("'Jobs'")}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=SERIAL_NUMBER`,
     );
     expect(jobs).toEqual([
-      { id: ID_B, company: "Acme", jobTitle: "Engineer", platform: "LinkedIn", row: 2 },
-      { id: ID_A, company: "Ryvo", jobTitle: "Senior Full-Stack Developer", platform: null, row: 4 },
+      { id: ID_B, company: "Acme", jobTitle: "Engineer", platform: "LinkedIn" },
+      { id: ID_A, company: "Ryvo", jobTitle: "Senior Full-Stack Developer", platform: null },
     ]);
   });
 
@@ -81,41 +79,6 @@ describe("sheets sink: list", () => {
   it("explains missing header columns", async () => {
     const short = header.filter((name) => name !== "Job ID");
     await expect(fakeClient([short, rowFor()]).sink.list()).rejects.toBeInstanceOf(MissingColumnsError);
-  });
-});
-
-describe("sheets sink: backfill IDs", () => {
-  it("writes an ID into the Job ID cell of every job row that has none, and nothing else", async () => {
-    const { sink, post } = fakeClient([
-      header,
-      rowFor({ jobId: ID_A }),
-      rowFor({ jobId: "" }),
-      header.map(() => ""),
-      rowFor({ jobId: "" }),
-    ]);
-
-    await expect(sink.backfillIds()).resolves.toEqual({ filled: 2 });
-
-    const [path, body] = post.mock.calls[0] as [string, BatchBody];
-    expect(path).toBe("values:batchUpdate");
-    const idColumn = columnLetter(col("Job ID"));
-    expect(body.data).toEqual([
-      { range: `'Jobs'!${idColumn}3`, values: [["'generated001"]] },
-      { range: `'Jobs'!${idColumn}5`, values: [["'generated002"]] },
-    ]);
-  });
-
-  it("leaves rows that only hold the user's own columns alone", async () => {
-    const userOnly = header.map((name) => (name === "My Comments" ? "note" : ""));
-    const { sink, post } = fakeClient([header, userOnly]);
-    await expect(sink.backfillIds()).resolves.toEqual({ filled: 0 });
-    expect(post).not.toHaveBeenCalled();
-  });
-
-  it("does not write when every job already has an ID", async () => {
-    const { sink, post } = fakeClient([header, rowFor()]);
-    await expect(sink.backfillIds()).resolves.toEqual({ filled: 0 });
-    expect(post).not.toHaveBeenCalled();
   });
 });
 

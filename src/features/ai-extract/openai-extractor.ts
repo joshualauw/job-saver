@@ -1,6 +1,5 @@
 import type { z } from "zod";
 
-import type { PagePayload } from "@/core/page-payload";
 import type { Extractor } from "@/core/types";
 import { createOpenAIClient, requestStructured } from "@/lib/openai";
 import type { OpenAIClient } from "@/lib/openai";
@@ -24,8 +23,8 @@ export function createOpenAIExtractor<T>(options: OpenAIExtractorOptions<T>): Ex
   const client = options.client ?? createOpenAIClient(options.apiKey);
 
   return {
-    extract(payload: PagePayload): Promise<T> {
-      const prompt = buildPrompt(payload, options.summaryLanguage);
+    extract(text: string): Promise<T> {
+      const prompt = buildPrompt(text, options.summaryLanguage);
       return requestStructured({
         client,
         model: options.model,

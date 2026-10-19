@@ -25,9 +25,6 @@ interface Props {
   onDone: () => void;
   connection: ConnectionState;
   onTestConnection: () => void;
-  /** State of "Add missing Job IDs", which writes IDs into rows saved before IDs existed. */
-  backfill: ConnectionState;
-  onBackfillIds: () => void;
 }
 
 function toInputs(settings: Settings | undefined): SettingsInputs {
@@ -41,7 +38,7 @@ function toInputs(settings: Settings | undefined): SettingsInputs {
   };
 }
 
-export function SettingsView({ onboarding, onDone, connection, onTestConnection, backfill, onBackfillIds }: Props) {
+export function SettingsView({ onboarding, onDone, connection, onTestConnection }: Props) {
   const { settings, save } = useSettings();
   const form = useForm<SettingsInputs>({ resolver: settingsResolver, defaultValues: toInputs(settings) });
 
@@ -185,29 +182,6 @@ export function SettingsView({ onboarding, onDone, connection, onTestConnection,
             <Alert.Indicator />
             <Alert.Content>
               <Alert.Title>{connection.error}</Alert.Title>
-            </Alert.Content>
-          </Alert.Root>
-        )}
-      </Stack>
-
-      <Stack gap="2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onBackfillIds}
-          loading={backfill.isPending}
-          disabled={!settings?.spreadsheetId || isDirty}
-        >
-          Add missing Job IDs
-        </Button>
-        <Text fontSize="xs" color="fg.muted">
-          Once, for jobs saved before IDs existed. Writes only the Job ID column.
-        </Text>
-        {backfill.error && (
-          <Alert.Root status="error">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>{backfill.error}</Alert.Title>
             </Alert.Content>
           </Alert.Root>
         )}

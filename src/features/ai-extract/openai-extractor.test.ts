@@ -4,11 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import { fields, jobLlmSchema } from "@/config/fields";
 import type { LlmJobValues } from "@/config/fields";
 import { AuthError, NetworkError, RateLimitError, SchemaError } from "@/core/errors";
-import type { PagePayload } from "@/core/page-payload";
 
 import { createOpenAIExtractor } from "./openai-extractor";
 
-const payload: PagePayload = { description: "Build things." };
+const text = "Build things.";
 
 const aiKeys = fields.filter((field) => field.source === "ai").map((field) => field.key);
 
@@ -47,12 +46,12 @@ function extractor(client: FakeClient) {
 describe("createOpenAIExtractor", () => {
   it("returns the validated model output", async () => {
     const { client } = fakeClient({ output: [], output_parsed: answer });
-    await expect(extractor(client).extract(payload)).resolves.toEqual(answer);
+    await expect(extractor(client).extract(text)).resolves.toEqual(answer);
   });
 
   it("sends the configured model, store:false, both messages and the strict schema", async () => {
     const { client, parse } = fakeClient({ output: [], output_parsed: answer });
-    await extractor(client).extract(payload);
+    await extractor(client).extract(text);
 
     expect(parse).toHaveBeenCalledOnce();
     const request = parse.mock.calls[0]?.[0] as {
@@ -89,25 +88,25 @@ describe("createOpenAIExtractor", () => {
       output: [{ type: "message", content: [{ type: "refusal", refusal: "I can't help with that." }] }],
       output_parsed: null,
     };
-    await expect(extractor(fakeClient(refusal).client).extract(payload)).rejects.toBeInstanceOf(SchemaError);
+    await expect(extractor(fakeClient(refusal).client).extract(text)).rejects.toBeInstanceOf(SchemaError);
   });
 
   it("throws SchemaError when nothing was parsed", async () => {
     const { client } = fakeClient({ output: [], output_parsed: null });
-    await expect(extractor(client).extract(payload)).rejects.toBeInstanceOf(SchemaError);
+    await expect(extractor(client).extract(text)).rejects.toBeInstanceOf(SchemaError);
   });
 
   it("throws SchemaError when the parsed output breaks the schema", async () => {
     const { client } = fakeClient({ output: [], output_parsed: { ...answer, company: 42 } });
-    await expect(extractor(client).extract(payload)).rejects.toBeInstanceOf(SchemaError);
+    await expect(extractor(client).extract(text)).rejects.toBeInstanceOf(SchemaError);
   });
 
   it("maps SDK failures to typed errors", async () => {
     const withStatus = (status: number) => Object.assign(new Error("api"), { status });
 
-    await expect(extractor(failingClient(withStatus(401))).extract(payload)).rejects.toBeInstanceOf(AuthError);
-    await expect(extractor(failingClient(withStatus(429))).extract(payload)).rejects.toBeInstanceOf(RateLimitError);
-    await expect(extractor(failingClient(new TypeError("Failed to fetch"))).extract(payload)).rejects.toBeInstanceOf(
+    await expect(extractor(failingClient(withStatus(401))).extract(text)).rejects.toBeInstanceOf(AuthError);
+    await expect(extractor(failingClient(withStatus(429))).extract(text)).rejects.toBeInstanceOf(RateLimitError);
+    await expect(extractor(failingClient(new TypeError("Failed to fetch"))).extract(text)).rejects.toBeInstanceOf(
       NetworkError,
     );
   });

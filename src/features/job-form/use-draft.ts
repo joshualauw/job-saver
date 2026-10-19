@@ -8,8 +8,8 @@ const DRAFT_QUERY_KEY = ["draft"] as const;
 const SAVE_DELAY_MS = 300;
 
 /**
- * Restores the in-progress draft when the panel opens and persists edits shortly after they
- * happen. A pending write is flushed when the panel is hidden or unmounted.
+ * The in-progress draft: restored when the panel opens, replaced by a fresh analysis, and persisted
+ * shortly after every edit. A pending write is flushed when the panel is hidden or unmounted.
  */
 export function useDraft() {
   const queryClient = useQueryClient();
@@ -61,5 +61,5 @@ export function useDraft() {
     void clearDraft();
   }, [queryClient]);
 
-  return { restored: query.data ?? null, isLoading: query.isLoading, persist, saveNow, discard };
+  return { current: query.data ?? null, isLoading: query.isLoading, persist, saveNow, discard };
 }

@@ -2,7 +2,7 @@ import { Button, Field, HStack, Text, Textarea } from "@chakra-ui/react";
 
 import { appConfig } from "@/config/app";
 
-import { selectionLength } from "./build-payload";
+import { textLength } from "./job-text";
 
 interface Props {
   text: string;
@@ -11,8 +11,8 @@ interface Props {
 }
 
 export function TextTab({ text, onChange, onClear }: Props) {
-  const length = selectionLength(text);
-  const over = length > appConfig.maxPageTextChars;
+  const length = textLength(text);
+  const over = length > appConfig.maxJobTextChars;
 
   return (
     <Field.Root>
@@ -27,7 +27,7 @@ export function TextTab({ text, onChange, onClear }: Props) {
       <HStack justify="space-between" w="full">
         <Text fontSize="xs" color={over ? "fg.warning" : "fg.muted"}>
           {over
-            ? `${length.toLocaleString("en-US")} characters. Only the first ${appConfig.maxPageTextChars.toLocaleString("en-US")} are sent.`
+            ? `${length.toLocaleString("en-US")} characters. Only the first ${appConfig.maxJobTextChars.toLocaleString("en-US")} are sent.`
             : `${length.toLocaleString("en-US")} characters`}
         </Text>
         <Button type="button" size="xs" variant="ghost" onClick={onClear} disabled={text === ""}>

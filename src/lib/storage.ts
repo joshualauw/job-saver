@@ -9,7 +9,7 @@ export const INPUT_TEXT_KEY = "input-text";
 
 const optionalText = z.string().trim().optional();
 
-export const settingsSchema = z.object({
+const settingsSchema = z.object({
   openaiApiKey: optionalText,
   openaiModel: optionalText,
   /** ID of the Google spreadsheet jobs are saved to (not a secret). */
@@ -57,7 +57,7 @@ export async function writeSettings(patch: Settings, adapter: StorageAdapter = c
 }
 
 /** The review form's in-progress state: strings exactly as shown in the form. */
-export const draftSchema = z.object({
+const draftSchema = z.object({
   inputs: z.record(z.string(), z.string()),
   /** Keys of fields the AI could not find, for "not found" flags. */
   missing: z.array(z.string()),

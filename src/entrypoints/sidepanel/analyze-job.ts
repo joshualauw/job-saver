@@ -7,7 +7,7 @@ import { createOpenAIAssessor } from "@/features/ai-assess/openai-assessor";
 import { buildJobDraft } from "@/features/ai-extract/draft";
 import { createOpenAIExtractor } from "@/features/ai-extract/openai-extractor";
 import { createOpenAITranscriber } from "@/features/ai-transcribe/openai-transcriber";
-import { buildSelectionPayload } from "@/features/job-input/build-payload";
+import { prepareJobText } from "@/features/job-input/job-text";
 import { readSettings } from "@/lib/storage";
 import type { Settings } from "@/lib/storage";
 
@@ -47,8 +47,8 @@ export async function analyzeJob(input: AnalyzeInput, deps: AnalyzeDeps = defaul
   const model = settings.openaiModel ?? appConfig.openaiModel;
 
   const text = input.kind === "text" ? input.text : await readMedia(input, deps, { apiKey, model });
-  const payload = buildSelectionPayload(text, appConfig.maxPageTextChars);
-  if (payload.description === "") {
+  const jobText = prepareJobText(text, appConfig.maxJobTextChars);
+  if (jobText === "") {
     throw new InputError("There is no text to analyze yet. Add some text, an image or a file first.");
   }
 
@@ -56,9 +56,9 @@ export async function analyzeJob(input: AnalyzeInput, deps: AnalyzeDeps = defaul
   // failing extraction cannot leave it as an unhandled rejection.
   const preferences = settings.preferences ?? [];
   const assessing =
-    preferences.length > 0 ? assess(deps.createAssessor({ apiKey, model }), { payload, preferences }) : null;
+    preferences.length > 0 ? assess(deps.createAssessor({ apiKey, model }), { text: jobText, preferences }) : null;
 
-  const llm = await deps.createExtractor({ apiKey, model }).extract(payload);
+  const llm = await deps.createExtractor({ apiKey, model }).extract(jobText);
 
   const draft = buildJobDraft({ llm });
 

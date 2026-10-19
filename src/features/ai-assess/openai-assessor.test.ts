@@ -2,16 +2,15 @@ import type OpenAI from "openai";
 import { describe, expect, it, vi } from "vitest";
 
 import { AuthError, NetworkError, RateLimitError, SchemaError } from "@/core/errors";
-import type { PagePayload } from "@/core/page-payload";
 import type { AssessmentInput } from "@/core/types";
 
 import { createOpenAIAssessor } from "./openai-assessor";
 import type { AssessmentAnswer } from "./schema";
 
-const payload: PagePayload = { description: "Build things with Node.js." };
+const text = "Build things with Node.js.";
 
 const PREFERENCE = "Experience with secret-preference-marker";
-const input: AssessmentInput = { payload, preferences: ["Remote work", PREFERENCE] };
+const input: AssessmentInput = { text, preferences: ["Remote work", PREFERENCE] };
 
 const answer: AssessmentAnswer = {
   preferences: [

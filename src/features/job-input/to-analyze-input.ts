@@ -1,6 +1,6 @@
 import type { AnalyzeInput } from "@/core/types";
 
-import { selectionLength } from "./build-payload";
+import { textLength } from "./job-text";
 import type { ImageItem, PickedFile } from "./read-attachment";
 
 export type InputTab = "text" | "image" | "file";
@@ -16,7 +16,7 @@ export interface TabContents {
 export function toAnalyzeInput(tab: InputTab, contents: TabContents): AnalyzeInput | null {
   switch (tab) {
     case "text":
-      return selectionLength(contents.text) > 0 ? { kind: "text", text: contents.text } : null;
+      return textLength(contents.text) > 0 ? { kind: "text", text: contents.text } : null;
     case "image":
       return contents.images.length > 0 ? { kind: "media", items: contents.images } : null;
     case "file": {
@@ -31,7 +31,7 @@ export function toAnalyzeInput(tab: InputTab, contents: TabContents): AnalyzeInp
 export function analyzeLabel(tab: InputTab, contents: TabContents): string {
   switch (tab) {
     case "text": {
-      const length = selectionLength(contents.text);
+      const length = textLength(contents.text);
       return length === 0 ? "Analyze" : `Analyze ${length.toLocaleString("en-US")} characters`;
     }
     case "image": {

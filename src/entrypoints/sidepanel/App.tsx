@@ -1,8 +1,7 @@
 import { Alert, Box, Button, Heading, HStack, Skeleton, Stack, Text } from "@chakra-ui/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { AppError } from "@/core/errors";
-import { newJobId } from "@/core/job-id";
 import { AssessmentCard } from "@/features/ai-assess/AssessmentCard";
 import { JobForm } from "@/features/job-form/JobForm";
 import { toFormInputs } from "@/features/job-form/form-values";
@@ -17,20 +16,9 @@ import { useSettings } from "@/features/settings/use-settings";
 import { toaster } from "@/theme/toast";
 
 import { useAnalyzeJob } from "./use-analyze-job";
-import { useBackfillIds } from "./use-backfill-ids";
 import { useJobList } from "./use-job-list";
 import { useSaveJob } from "./use-save-job";
 import { useVerifyConnection } from "./use-verify-connection";
-
-/** What the form is currently showing: a fresh analysis, or a draft restored on reopen. */
-interface Session {
-  /** Changes per analysis so the form remounts with fresh values. */
-  readonly id: number;
-  readonly inputs: FormInputs;
-  readonly missing: readonly string[];
-  /** Why the assessment is missing after an attempt; only present for an analysis made in this panel session. */
-  readonly assessmentError: string | null;
-}
 
 type View = "job" | "settings";
 
@@ -44,9 +32,11 @@ export function App() {
   const save = useSaveJob();
   const draft = useDraft();
   const connection = useVerifyConnection();
-  const backfill = useBackfillIds();
   const input = useJobInput();
-  const [analysis, setAnalysis] = useState<Session | null>(null);
+  // Changes per analysis so the form remounts with the fresh values.
+  const [formKey, setFormKey] = useState(0);
+  // Why the preference check is missing after an analysis in this panel session; the form is still usable.
+  const [assessmentError, setAssessmentError] = useState<string | null>(null);
   // Null until the user picks a view, so the first run can open Settings by itself.
   const [chosenView, setChosenView] = useState<View | null>(null);
 
@@ -56,20 +46,8 @@ export function App() {
   const firstRun = chosenView === null && !isLoading && !setupComplete;
   const view: View = chosenView ?? (firstRun ? "settings" : "job");
 
-  const restored = useMemo<Session | null>(
-    () =>
-      draft.restored
-        ? {
-            id: 0,
-            // A draft saved before job IDs existed has none; the form needs one to save.
-            inputs: { ...draft.restored.inputs, jobId: draft.restored.inputs["jobId"] || newJobId() },
-            missing: draft.restored.missing,
-            assessmentError: null,
-          }
-        : null,
-    [draft.restored],
-  );
-  const session = analysis ?? restored;
+  // What the form is showing: a fresh analysis, or the draft restored on reopen.
+  const session = draft.current;
   // Fetched once a form is on screen, so Google's sign-in prompt (first use only) follows a user action.
   const jobList = useJobList(settings, session !== null);
 
@@ -87,21 +65,16 @@ export function App() {
     save.reset();
     analyze.mutate(input.analyzeInput, {
       onSuccess: (result) => {
-        const next: Session = {
-          id: Date.now(),
-          inputs: toFormInputs(result.values),
-          missing: result.missing,
-          assessmentError: result.assessmentError,
-        };
-        draft.saveNow({ inputs: next.inputs, missing: [...next.missing] });
-        setAnalysis(next);
+        draft.saveNow({ inputs: toFormInputs(result.values), missing: [...result.missing] });
+        setFormKey(Date.now());
+        setAssessmentError(result.assessmentError);
       },
     });
   };
 
   const discard = () => {
     draft.discard();
-    setAnalysis(null);
+    setAssessmentError(null);
     analyze.reset();
     save.reset();
   };
@@ -112,7 +85,7 @@ export function App() {
       onSuccess: (result) => {
         draft.discard();
         input.clearActive();
-        setAnalysis(null);
+        setAssessmentError(null);
         toaster.create({
           type: "success",
           title:
@@ -149,8 +122,6 @@ export function App() {
             onDone={() => setChosenView("job")}
             connection={connection.state}
             onTestConnection={connection.run}
-            backfill={backfill.state}
-            onBackfillIds={backfill.run}
           />
         )}
 
@@ -196,20 +167,20 @@ export function App() {
 
             {session && (
               <Stack gap="4">
-                {session.assessmentError && (
+                {assessmentError && (
                   <Alert.Root status="warning">
                     <Alert.Indicator />
                     <Alert.Content>
                       <Alert.Title>Couldn't judge this job</Alert.Title>
                       <Alert.Description>
-                        {session.assessmentError} Analyze again to retry.
+                        {assessmentError} Analyze again to retry.
                       </Alert.Description>
                     </Alert.Content>
                   </Alert.Root>
                 )}
 
                 <JobForm
-                  key={session.id}
+                  key={formKey}
                   initialInputs={session.inputs}
                   missing={session.missing}
                   onChange={handleChange}

@@ -1,4 +1,4 @@
-import { fence, pagePromptSections } from "@/core/page-prompt";
+import { fence, jobTextSections } from "@/core/prompt-fence";
 import type { AssessmentInput } from "@/core/types";
 
 export interface Prompt {
@@ -7,7 +7,7 @@ export interface Prompt {
 }
 
 /**
- * Rules only; no preference or page content ever goes in here. The allowed answers reach the model
+ * Rules only; no preference or job text ever goes in here. The allowed answers reach the model
  * through the structured-output schema.
  */
 export function buildSystemPrompt(): string {
@@ -41,7 +41,7 @@ export function buildUserPrompt(input: AssessmentInput): string {
       fence("preferences", input.preferences.map((preference, index) => `${index + 1}. ${preference}`).join("\n")),
     );
   }
-  parts.push(...pagePromptSections(input.payload));
+  parts.push(...jobTextSections(input.text));
 
   return parts.join("\n\n");
 }

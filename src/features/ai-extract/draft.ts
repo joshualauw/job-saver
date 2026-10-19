@@ -19,7 +19,7 @@ export interface BuildDraftInput {
 
 export interface BuildDraftResult {
   readonly values: JobDraft;
-  /** Required or AI-sourced scalar fields that ended up empty: shown as "not found". */
+  /** AI-sourced scalar fields that ended up empty: shown as "not found". */
   readonly missing: readonly JobFieldKey[];
 }
 
@@ -50,8 +50,7 @@ export function buildJobDraft({ llm, newId = newJobId }: BuildDraftInput): Build
     if (field.type === "stringList") continue;
     if (isBlank(merged[field.key])) {
       merged[field.key] = null;
-      const required = "required" in field && field.required;
-      if (field.source === "ai" || required) missing.push(field.key);
+      if (field.source === "ai") missing.push(field.key);
     }
   }
 

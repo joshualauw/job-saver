@@ -5,7 +5,7 @@ import { parseHttpUrl } from "@/lib/url";
 import { normalizeList } from "./normalize";
 import type { FieldDef, LlmValuesOf, ValuesOf } from "./types";
 
-export function enumValues(field: FieldDef): [string, ...string[]] {
+function enumValues(field: FieldDef): [string, ...string[]] {
   const values = field.options?.map((option) => option.value) ?? [];
   const [first, ...rest] = values;
   if (first === undefined) {

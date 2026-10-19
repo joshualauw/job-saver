@@ -77,7 +77,7 @@ function findRefusal(output: readonly unknown[]): string | null {
 export interface StructuredRequest<T> {
   readonly client: OpenAIClient;
   readonly model: string;
-  /** Rules only; never page or personal content. */
+  /** Rules only; never job or personal content. */
   readonly system: string;
   readonly user: string;
   /** Strict-mode schema the model must satisfy. */
@@ -124,7 +124,7 @@ export async function requestStructured<T>(request: StructuredRequest<T>): Promi
 export interface TextRequest {
   readonly client: OpenAIClient;
   readonly model: string;
-  /** Rules only; never page or personal content. */
+  /** Rules only; never job or personal content. */
   readonly system: string;
   /** The user message: text, images and files. */
   readonly user: OpenAI.Responses.ResponseInputMessageContentList;

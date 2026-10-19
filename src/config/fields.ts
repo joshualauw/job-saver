@@ -191,9 +191,8 @@ export const fields = [
     column: "Job ID",
     label: "Job ID",
     type: "string",
-    source: "derived",
+    source: "code",
     required: true,
-    hidden: true,
   },
 ] as const satisfies readonly FieldDef[];
 

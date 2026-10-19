@@ -1,10 +1,12 @@
-import type { PagePayload } from "./page-payload";
-
 /**
- * Who is responsible for a value. `assessment` values come from a separate AI judgement of the job
- * against the user (never from extraction); they are shown in a card, not as form inputs.
+ * Who is responsible for a value:
+ * - `ai`: read from the posting by the model, reviewed in the form.
+ * - `user`: typed or picked by the user; the model never sets it.
+ * - `code`: set by code and never shown as an input (the job ID).
+ * - `assessment`: a separate AI judgement of the job against the user (never from extraction), shown in a
+ *   card, not as a form input.
  */
-export type FieldSource = "ai" | "derived" | "user" | "assessment";
+export type FieldSource = "ai" | "user" | "code" | "assessment";
 /** `stringList` is a list of lowercase strings (e.g. skills); one comma-separated sheet cell. */
 export type FieldType = "string" | "text" | "url" | "number" | "date" | "enum" | "stringList";
 
@@ -38,8 +40,6 @@ export interface FieldDef {
    * `options`, this is not a closed list.
    */
   readonly suggestions?: readonly string[];
-  /** Carried through the form and saved, but never shown as an input (e.g. the job ID). */
-  readonly hidden?: boolean;
 }
 
 type FieldBaseValue<F extends FieldDef> = F["type"] extends "number"
@@ -82,8 +82,6 @@ export interface ListedJob {
   readonly company: string;
   readonly jobTitle: string;
   readonly platform: string | null;
-  /** 1-based sheet row. Informational only: it is never stored, rows are re-found by ID. */
-  readonly row: number;
 }
 
 export interface SaveResult {
@@ -97,8 +95,6 @@ export interface Sink {
   list(): Promise<ListedJob[]>;
   /** Writes a new row, or updates the existing row with the same job ID. */
   save(values: Readonly<Record<string, unknown>>): Promise<SaveResult>;
-  /** Gives an ID to every job row that has none (rows saved before IDs existed). */
-  backfillIds(): Promise<{ readonly filled: number }>;
   /**
    * Checks the destination is reachable and has every configured column; throws a typed error
    * naming what is wrong. `columns` is how many configured columns were found.
@@ -106,14 +102,15 @@ export interface Sink {
   verify(): Promise<{ readonly columns: number }>;
 }
 
-/** Turns page content into typed values (OpenAI today); implementations live in features. */
+/** Turns a job posting's text into typed values (OpenAI today); implementations live in features. */
 export interface Extractor<T> {
-  extract(payload: PagePayload): Promise<T>;
+  extract(text: string): Promise<T>;
 }
 
 /** What the assessor judges a job against. The preferences are the user's own. */
 export interface AssessmentInput {
-  readonly payload: PagePayload;
+  /** The job posting's text, already cleaned and capped. */
+  readonly text: string;
   /** One entry per preference; empty when none are set. */
   readonly preferences: readonly string[];
 }

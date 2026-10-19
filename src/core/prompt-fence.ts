@@ -1,5 +1,3 @@
-import type { PagePayload } from "./page-payload";
-
 /** Stops text from closing a fence or opening a new one. */
 function escapeForFence(text: string): string {
   return text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -11,9 +9,9 @@ export function fence(tag: string, body: string): string {
 }
 
 /**
- * The posting as fenced sections, ready to join into a user message. Everything in here is
- * untrusted content: it belongs in the user message only, never the system prompt.
+ * The posting as fenced sections, ready to join into a user message. The text is untrusted content:
+ * it belongs in the user message only, never the system prompt.
  */
-export function pagePromptSections(payload: PagePayload): string[] {
-  return payload.description.trim() === "" ? [] : [fence("job_description", payload.description)];
+export function jobTextSections(text: string): string[] {
+  return text.trim() === "" ? [] : [fence("job_description", text)];
 }

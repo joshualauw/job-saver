@@ -56,7 +56,7 @@ export function JobForm({
 
   // The form's job ID belongs to a saved job exactly when Save To picked it (a new draft's ID is not in the sheet).
   const target = jobList?.jobs.find((job) => job.id === current["jobId"]) ?? null;
-  // The ID is code-owned and hidden, so retargeting swaps it: Save then updates that job's row.
+  // The ID is code-owned and not shown, so retargeting swaps it: Save then updates that job's row.
   const pickTarget = (jobId: string | null) => form.setValue("jobId", jobId ?? newJobId(), { shouldDirty: true });
   const errorCount = Object.keys(errors).length;
 

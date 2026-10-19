@@ -82,8 +82,7 @@ Tip: pasting the line above into cell A1 splits it across columns, since the hea
 separated. If it lands in one cell, type them in by hand.
 
 **Job ID** is how the app recognises a job when you save to it again. It is filled in for you and
-never shown in the panel. If you already have saved jobs, add the header, then press **Add missing
-Job IDs** in Settings once so those rows get one too.
+never shown in the panel.
 
 New jobs are written into the first empty row that has your formatting, so any dropdowns or formats
 you set up on the columns are kept. Past the formatted rows, Google adds new rows for you.

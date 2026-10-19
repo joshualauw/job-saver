@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { appConfig } from "@/config/app";
 import { AppError } from "@/core/errors";
 import type { ListedJob } from "@/core/types";
 import type { JobListState } from "@/features/job-form/SaveToPicker";
 import type { Settings } from "@/lib/storage";
 
-import { createSink } from "./create-sink";
+import { createSink, sheetTabOf } from "./open-sink";
 
 export const JOB_LIST_QUERY_KEY = ["jobs"] as const;
 
@@ -18,7 +17,7 @@ const NO_JOBS: readonly ListedJob[] = [];
  */
 export function useJobList(settings: Settings | undefined, enabled: boolean): JobListState | null {
   const spreadsheetId = settings?.spreadsheetId;
-  const tab = settings?.sheetTab ?? appConfig.defaultSheetTab;
+  const tab = sheetTabOf(settings ?? {});
 
   const query = useQuery({
     queryKey: [...JOB_LIST_QUERY_KEY, spreadsheetId, tab],

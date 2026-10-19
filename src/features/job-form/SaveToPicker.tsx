@@ -12,7 +12,7 @@ export interface JobListState {
 }
 
 /** How a saved job reads in the list and on the Update button. */
-export function jobLabel(job: Pick<ListedJob, "company" | "jobTitle">): string {
+function jobLabel(job: Pick<ListedJob, "company" | "jobTitle">): string {
   const parts = [job.company, job.jobTitle].filter((part) => part !== "");
   return parts.length > 0 ? parts.join(" - ") : "Untitled job";
 }

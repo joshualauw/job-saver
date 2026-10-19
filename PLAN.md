@@ -78,6 +78,26 @@ plain text) and then the same extractor and assessor as text. Icons are inline S
 - [x] Tests (OpenAI mocked) for the transcriber, the analyze flow, attachment reading and the tab-to-input mapping.
 - [~] Checked in a browser with a stubbed chrome; real Chrome check (right-click fills the Text tab, image and PDF analysis with a real key) is still for the user.
 
+## Phase 4.5: Clean up legacy and simplify
+
+Remove what only existed to carry the 1.3.0 app forward, and flatten structure that still reflects the old design.
+No behaviour change beyond the removals. Keep commits small.
+
+- [x] Remove the Job ID backfill (Settings button, its hook and composition, the sink method, the README note, tests);
+      the sheet is already backfilled.
+- [x] Remove "saved before X existed" handling: the restored-draft job ID fallback, the old-CV-settings test and
+      guard, and any other compatibility code for data shapes from 1.3.0.
+- [x] Rename historical names to match what the code does now (page payload, page prompt, page text cap, selection
+      helpers become job text), including comments, strings and the package and manifest descriptions.
+- [x] Simplify the field config now that platform and URL are user-owned and the job ID is the only code-owned
+      field (field sources, hidden flag, "missing" logic).
+- [x] Simplify the side panel wiring: App.tsx and the composition files and hooks around it, dropping layers that
+      only forward calls and injectable dependencies nothing needs.
+- [x] Remove dead code: unused exports and types, wrappers in the chrome helper that nothing calls, and tests for
+      behaviour that no longer exists.
+- [x] Diff against 1.3.0 for anything else left over (settings, storage keys, permissions, docs claims for Phase 5);
+      typecheck, lint and tests pass.
+
 ## Phase 5: Docs and release
 
 - [ ] Rewrite ARCHITECTURE.md (data flow, code map, permissions, security) and the README.
@@ -120,6 +140,8 @@ plain text) and then the same extractor and assessor as text. Icons are inline S
   Left for later: the payload type keeps its old name for now (Phase 4's text-to-payload builder is the place to
   rename it); README, ARCHITECTURE.md and CLAUDE.md still describe page reading and platforms (Phase 5). With no
   text box yet, right-click is the only way to give the panel text until Phase 4.
+- Phase 4.5 added: clean up legacy handling from 1.3.0 and simplify the structure before the docs rewrite, so Phase 5
+  describes the simpler code. The Job ID backfill goes because the real sheet already has IDs.
 - Phase 4 built (typecheck, lint, tests pass). Three tabs (Text, Image, File) with inline SVG icons; each keeps its
   content while you switch and Analyze sends only the active tab; after a save only that tab is cleared. Images and PDFs
   are read by a hidden transcribe call (one vision request), then go through the same extractor and assessor as
@@ -127,3 +149,12 @@ plain text) and then the same extractor and assessor as text. Icons are inline S
   so they are lost when the panel closes; the Text tab is kept in session storage. Checked in a browser with a stubbed
   chrome (tabs, drops, errors, progress kept); the real vision call is covered by mocked tests only. The payload type
   keeps its old name (it is only the posting text now).
+- Phase 4.5 done (typecheck, lint, 322 tests pass; restored-draft form and Settings checked in a browser with a stubbed
+  chrome). Removed: the Job ID backfill and its sink method, the restored-draft ID fallback, the old-CV settings test and
+  prompt guard, the unused sheet-row field on listed jobs. Simplified: the model input is now a plain job text (no
+  payload object; "page"/"selection" names became "job text"), the field config has one code-owned source instead of
+  derived plus a hidden flag, the form's single draft is the session (no separate Session object), and save and test
+  connection share one helper for opening the sheet. A scan found no unused exports, only a few exports nothing outside
+  their file used, which were un-exported. For Phase 5, README.md still describes page analysis, "Re-analyze",
+  dedicated Jobstreet support, the "Allow Job Saver on this site" prompt, page text and the troubleshooting rows for
+  those; ARCHITECTURE.md and CLAUDE.md describe page reading, platforms, selectors and fixtures.

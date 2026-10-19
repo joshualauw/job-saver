@@ -3,8 +3,7 @@ import { z } from "zod";
 import { fields } from "@/config/fields";
 import type { JobFieldKey } from "@/config/fields";
 import { SchemaError, UnexpectedError } from "@/core/errors";
-import { newJobId } from "@/core/job-id";
-import { asText, columnIndexOf, fromSheetRow, toSheetCells, toSheetRow } from "@/core/row-mapping";
+import { columnIndexOf, fromSheetRow, toSheetCells, toSheetRow } from "@/core/row-mapping";
 import type { RawCell } from "@/core/row-mapping";
 import type { ListedJob, SaveResult, Sink } from "@/core/types";
 
@@ -21,8 +20,6 @@ const updateResponse = z.object({}).loose();
 export interface SheetsSinkOptions {
   readonly tab: string;
   readonly client: SheetsClient;
-  /** Injectable for tests; defaults to a random ID. */
-  readonly newId?: () => string;
 }
 
 interface TabSnapshot {
@@ -61,7 +58,7 @@ function firstFreeRow(snapshot: TabSnapshot): number {
   return (gap === -1 ? snapshot.rows.length : gap) + 2;
 }
 
-export function createSheetsSink({ tab, client, newId = newJobId }: SheetsSinkOptions): Sink {
+export function createSheetsSink({ tab, client }: SheetsSinkOptions): Sink {
   const quotedTab = quoteTab(tab);
 
   // Whole tab in one request: fine for a personal tracker, and it keeps header, lookup and
@@ -102,7 +99,7 @@ export function createSheetsSink({ tab, client, newId = newJobId }: SheetsSinkOp
 
       const idIndex = columnIndexOf(fields, JOB_ID_KEY, snapshot.header);
       const jobs: ListedJob[] = [];
-      snapshot.rows.forEach((row, index) => {
+      snapshot.rows.forEach((row) => {
         const id = String(row[idIndex] ?? "").trim();
         if (id === "") return;
         const values = fromSheetRow(fields, row, snapshot.header);
@@ -111,29 +108,9 @@ export function createSheetsSink({ tab, client, newId = newJobId }: SheetsSinkOp
           company: textOf(values["company"]),
           jobTitle: textOf(values["jobTitle"]),
           platform: textOf(values["platform"]) || null,
-          row: index + 2,
         });
       });
       return jobs;
-    },
-
-    async backfillIds() {
-      const snapshot = await readTab();
-      const idIndex = columnIndexOf(fields, JOB_ID_KEY, snapshot.header);
-      const others = toSheetCells(fields, {}, snapshot.header)
-        .map((cell) => cell.index)
-        .filter((index) => index !== idIndex);
-
-      // A row counts as a job when any app-owned cell besides the ID has content; user-only rows are left alone.
-      const data = snapshot.rows.flatMap((row, index) =>
-        isBlank(row[idIndex]) && others.some((column) => !isBlank(row[column]))
-          ? [{ range: `${quotedTab}!${columnLetter(idIndex)}${index + 2}`, values: [[asText(newId())]] }]
-          : [],
-      );
-      if (data.length === 0) return { filled: 0 };
-
-      await client.post("values:batchUpdate", { valueInputOption: "USER_ENTERED", data }, updateResponse);
-      return { filled: data.length };
     },
 
     async verify() {

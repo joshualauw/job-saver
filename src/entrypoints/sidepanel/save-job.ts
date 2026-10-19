@@ -1,25 +1,13 @@
-import { appConfig } from "@/config/app";
-import { UnexpectedError } from "@/core/errors";
-import type { SaveResult, Sink } from "@/core/types";
-import { readSettings } from "@/lib/storage";
-import type { Settings } from "@/lib/storage";
+import type { SaveResult } from "@/core/types";
 
-import { createSink } from "./create-sink";
-
-export interface SaveDeps {
-  readonly readSettings: () => Promise<Settings>;
-  readonly createSink: (spreadsheetId: string, tab: string) => Sink;
-}
-
-const defaultDeps: SaveDeps = { readSettings: () => readSettings(), createSink };
+import { defaultSinkDeps, openSink } from "./open-sink";
+import type { SinkDeps } from "./open-sink";
 
 /** Composition root for "Save": write a new row or update the one with the same job ID. */
 export async function saveJob(
   values: Readonly<Record<string, unknown>>,
-  deps: SaveDeps = defaultDeps,
+  deps: SinkDeps = defaultSinkDeps,
 ): Promise<SaveResult> {
-  const { spreadsheetId, sheetTab } = await deps.readSettings();
-  if (!spreadsheetId) throw new UnexpectedError("Add your Google spreadsheet in Settings first.");
-
-  return deps.createSink(spreadsheetId, sheetTab ?? appConfig.defaultSheetTab).save(values);
+  const { sink } = await openSink("Add your Google spreadsheet in Settings first.", deps);
+  return sink.save(values);
 }

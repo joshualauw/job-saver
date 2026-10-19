@@ -15,7 +15,7 @@ const MS_PER_DAY = 86_400_000;
 const MAX_SERIAL = 2_958_465; // 9999-12-31
 
 /**
- * Sheet-bound text comes from arbitrary web pages. With `USER_ENTERED`, Sheets would evaluate a
+ * Sheet-bound text comes from arbitrary job postings. With `USER_ENTERED`, Sheets would evaluate a
  * leading `=`, `+`, `-` or `@` as a formula and turn text such as `12-14`, `3/4`, `2024` or `TRUE`
  * into a date, number or boolean. A leading apostrophe makes it store the text as typed; it is
  * not part of the stored value, so reads never see it.

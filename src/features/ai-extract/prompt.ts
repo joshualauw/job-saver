@@ -1,6 +1,5 @@
 import { appConfig } from "@/config/app";
-import type { PagePayload } from "@/core/page-payload";
-import { pagePromptSections } from "@/core/page-prompt";
+import { jobTextSections } from "@/core/prompt-fence";
 
 export interface Prompt {
   readonly system: string;
@@ -29,7 +28,7 @@ const SKILLS_RULES = [
 ] as const;
 
 /**
- * Rules only; no page content ever goes in here. Enum values and per-field hints reach the model
+ * Rules only; no job text ever goes in here. Enum values and per-field hints reach the model
  * through the structured-output schema, so they are not repeated.
  */
 export function buildSystemPrompt(summaryLanguage: string = appConfig.summaryLanguage): string {
@@ -70,10 +69,10 @@ export function buildSystemPrompt(summaryLanguage: string = appConfig.summaryLan
   ].join("\n");
 }
 
-export function buildUserPrompt(payload: PagePayload): string {
-  return pagePromptSections(payload).join("\n\n");
+export function buildUserPrompt(text: string): string {
+  return jobTextSections(text).join("\n\n");
 }
 
-export function buildPrompt(payload: PagePayload, summaryLanguage?: string): Prompt {
-  return { system: buildSystemPrompt(summaryLanguage), user: buildUserPrompt(payload) };
+export function buildPrompt(text: string, summaryLanguage?: string): Prompt {
+  return { system: buildSystemPrompt(summaryLanguage), user: buildUserPrompt(text) };
 }

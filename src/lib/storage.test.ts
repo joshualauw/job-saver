@@ -74,13 +74,6 @@ describe("preferences in settings", () => {
     await writeSettings({ preferences: [] }, adapter);
     expect(await readSettings(adapter)).toEqual({ openaiApiKey: "sk-abc" });
   });
-
-  it("ignores a CV left by an older version, without dropping other settings", async () => {
-    const { adapter } = memoryAdapter({
-      settings: { openaiApiKey: "sk-abc", cvText: "x".repeat(50_000), cvFileName: "cv.pdf" },
-    });
-    expect(await readSettings(adapter)).toEqual({ openaiApiKey: "sk-abc" });
-  });
 });
 
 describe("draft storage", () => {

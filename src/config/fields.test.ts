@@ -42,8 +42,8 @@ describe("field config", () => {
 
   it("keeps the job ID code-owned, required and out of the form inputs", () => {
     const jobId = fields.find((field) => field.key === "jobId");
-    expect(jobId).toMatchObject({ column: "Job ID", source: "derived", required: true, hidden: true });
-    expect(formFields.some((field) => field.key === "jobId")).toBe(false);
+    expect(jobId).toMatchObject({ column: "Job ID", source: "code", required: true });
+    expect(formFields.map((field) => field.key as string)).not.toContain("jobId");
   });
 
   it("never marks a field both required and nullable", () => {

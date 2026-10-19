@@ -3,14 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import { appConfig } from "@/config/app";
 import type { AssessmentValues, LlmJobValues } from "@/config/fields";
 import { AuthError, InputError, NetworkError, RateLimitError } from "@/core/errors";
-import type { PagePayload } from "@/core/page-payload";
 import type { AnalyzeInput, MediaAttachment } from "@/core/types";
 
 import { analyzeJob } from "./analyze-job";
 import type { AnalyzeDeps } from "./analyze-job";
 
 const INPUT: AnalyzeInput = { kind: "text", text: "  Build   things.  " };
-const payload: PagePayload = { description: "Build things." };
+const text = "Build things.";
 
 const answer: LlmJobValues = {
   company: "Ryvo",
@@ -66,7 +65,7 @@ describe("analyzeJob", () => {
     const { all, extract, createExtractor } = deps();
     const result = await analyzeJob(INPUT, all);
 
-    expect(extract).toHaveBeenCalledWith(payload);
+    expect(extract).toHaveBeenCalledWith("Build things.");
     expect(createExtractor).toHaveBeenCalledWith({ apiKey: "sk-test", model: appConfig.openaiModel });
     expect(result.values.platform).toBeNull();
     expect(result.values.jobUrl).toBeNull();
@@ -111,7 +110,7 @@ describe("analyzeJob with images or a PDF", () => {
 
     expect(createTranscriber).toHaveBeenCalledWith({ apiKey: "sk-test", model: appConfig.openaiModel });
     expect(transcribe).toHaveBeenCalledWith([photo]);
-    expect(extract).toHaveBeenCalledWith({ description: "Read from\nan image." });
+    expect(extract).toHaveBeenCalledWith("Read from\nan image.");
     expect(result.values.company).toBe("Ryvo");
     expect(result.values.jobId).toMatch(/^[a-z0-9]{12}$/);
   });
@@ -184,7 +183,7 @@ describe("analyzeJob with the assessor", () => {
     await analyzeJob(INPUT, all);
 
     expect(createAssessor).toHaveBeenCalledWith({ apiKey: "sk-test", model: "my-model" });
-    expect(assess).toHaveBeenCalledWith({ payload, preferences: ["Remote work"] });
+    expect(assess).toHaveBeenCalledWith({ text, preferences: ["Remote work"] });
   });
 
   it("starts the assessor before extraction has finished", async () => {

@@ -5,8 +5,8 @@ export const appConfig = {
   summaryLanguage: "English",
   /** Sheet tab used when none is configured. */
   defaultSheetTab: "Jobs",
-  /** Upper bound on page text sent to the model, in characters. */
-  maxPageTextChars: 12_000,
+  /** Upper bound on the job text sent to the model, in characters. */
+  maxJobTextChars: 12_000,
   /** Most images that can be read in one go (long postings come as several screenshots). */
   maxImages: 5,
   /** Largest single image, in bytes. */
