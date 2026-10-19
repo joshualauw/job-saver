@@ -10,8 +10,8 @@ const valid: FormInputs = toFormInputs({
   address: "Jakarta",
   contractType: "full_time",
   locationType: "onsite",
-  platform: "Jobstreet",
-  jobUrl: "https://id.jobstreet.com/id/job/94811596",
+  source: "Jobstreet",
+  sourceUrl: "https://id.jobstreet.com/id/job/94811596",
   minYoe: null,
   skills: ["node.js"],
   salaryPeriod: "hour",
@@ -52,9 +52,9 @@ describe("validateInputs", () => {
     expect(errorsOf({ ...valid, minSalary: "8 juta" })["minSalary"]).toBe("Must be a number");
   });
 
-  it("explains link problems and lets platform and URL stay empty", () => {
-    expect(errorsOf({ ...valid, jobUrl: "example.com" })["jobUrl"]).toBe("Must start with http:// or https://");
-    expect(validateInputs({ ...valid, jobUrl: "", platform: "" }).ok).toBe(true);
+  it("explains link problems and lets source and URL stay empty", () => {
+    expect(errorsOf({ ...valid, sourceUrl: "example.com" })["sourceUrl"]).toBe("Must start with http:// or https://");
+    expect(validateInputs({ ...valid, sourceUrl: "", source: "" }).ok).toBe(true);
   });
 
   it("explains enum problems", () => {

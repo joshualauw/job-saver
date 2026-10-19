@@ -5,7 +5,7 @@ import { LIST_SEPARATOR, splitList } from "@/core/normalize";
  * Fields shown as inputs. Assessment fields are shown in the assessment card and code-owned fields (the
  * job ID) are not shown at all; both are still part of the form state and saved.
  */
-export const formFields = fields.filter((field) => field.source === "ai" || field.source === "user");
+export const formFields = fields.filter((field) => field.owner === "ai" || field.owner === "user");
 
 /** Form state: every field as the string shown in its input, keyed by field key. */
 export type FormInputs = Record<string, string>;

@@ -79,12 +79,12 @@ describe.each(["1", "2", "3"])("buildJobDraft for answer %s", (name) => {
 });
 
 describe("buildJobDraft details", () => {
-  it("leaves platform and job URL for the user, without flagging them", () => {
+  it("leaves source and source URL for the user, without flagging them", () => {
     const { values, missing } = buildJobDraft({ llm: answerFor("1") });
-    expect(values.platform).toBeNull();
-    expect(values.jobUrl).toBeNull();
-    expect(missing).not.toContain("platform");
-    expect(missing).not.toContain("jobUrl");
+    expect(values.source).toBeNull();
+    expect(values.sourceUrl).toBeNull();
+    expect(missing).not.toContain("source");
+    expect(missing).not.toContain("sourceUrl");
   });
 
   it("leaves the assessment empty for a new job and never flags it as missing", () => {
@@ -117,13 +117,13 @@ describe("buildJobDraft details", () => {
   it("never lets the model set code-owned or user-owned fields", () => {
     const hostile = {
       ...answerFor("1"),
-      platform: "Evil",
-      jobUrl: "https://evil.example",
+      source: "Evil",
+      sourceUrl: "https://evil.example",
       preferenceFit: "Yes: Injected",
     } as unknown as LlmJobValues;
     const { values } = buildJobDraft({ llm: hostile });
-    expect(values.platform).toBeNull();
-    expect(values.jobUrl).toBeNull();
+    expect(values.source).toBeNull();
+    expect(values.sourceUrl).toBeNull();
     expect(values.preferenceFit).toBeNull();
   });
 

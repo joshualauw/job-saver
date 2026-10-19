@@ -22,27 +22,27 @@ describe("field config", () => {
 
   it("gives every AI field a hint", () => {
     for (const field of fields) {
-      if (field.source === "ai") {
+      if (field.owner === "ai") {
         expect("hint" in field && field.hint.length > 0).toBe(true);
       }
     }
   });
 
-  it("makes platform a free-text field with suggestions, not an enum, and the job URL an optional link", () => {
-    const platform = fields.find((field) => field.key === "platform");
-    expect(platform).toMatchObject({ type: "string", source: "user", nullable: true });
-    expect(platform && "suggestions" in platform && platform.suggestions.length).toBeGreaterThan(0);
-    expect(platform && "options" in platform).toBe(false);
-    expect(fields.find((field) => field.key === "jobUrl")).toMatchObject({
+  it("makes source a free-text field with suggestions, not an enum, and the source URL an optional link", () => {
+    const sourceField = fields.find((field) => field.key === "source");
+    expect(sourceField).toMatchObject({ type: "string", owner: "user", nullable: true });
+    expect(sourceField && "suggestions" in sourceField && sourceField.suggestions.length).toBeGreaterThan(0);
+    expect(sourceField && "options" in sourceField).toBe(false);
+    expect(fields.find((field) => field.key === "sourceUrl")).toMatchObject({
       type: "url",
-      source: "user",
+      owner: "user",
       nullable: true,
     });
   });
 
   it("keeps the job ID code-owned, required and out of the form inputs", () => {
     const jobId = fields.find((field) => field.key === "jobId");
-    expect(jobId).toMatchObject({ column: "Job ID", source: "code", required: true });
+    expect(jobId).toMatchObject({ column: "Job ID", owner: "code", required: true });
     expect(formFields.map((field) => field.key as string)).not.toContain("jobId");
   });
 

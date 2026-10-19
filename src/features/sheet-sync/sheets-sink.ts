@@ -107,7 +107,7 @@ export function createSheetsSink({ tab, client }: SheetsSinkOptions): Sink {
           id,
           company: textOf(values["company"]),
           jobTitle: textOf(values["jobTitle"]),
-          platform: textOf(values["platform"]) || null,
+          source: textOf(values["source"]) || null,
         });
       });
       return jobs;

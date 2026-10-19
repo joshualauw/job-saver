@@ -6,7 +6,7 @@
  * - `assessment`: a separate AI judgement of the job against the user (never from extraction), shown in a
  *   card, not as a form input.
  */
-export type FieldSource = "ai" | "user" | "code" | "assessment";
+export type FieldOwner = "ai" | "user" | "code" | "assessment";
 /** `stringList` is a list of lowercase strings (e.g. skills); one comma-separated sheet cell. */
 export type FieldType = "string" | "text" | "url" | "number" | "date" | "enum" | "stringList";
 
@@ -23,8 +23,8 @@ export interface FieldDef {
   readonly label: string;
   readonly type: FieldType;
   /** Who is responsible for the value. */
-  readonly source: FieldSource;
-  /** Instruction for the LLM; only meaningful for `source: "ai"`. */
+  readonly owner: FieldOwner;
+  /** Instruction for the LLM; only meaningful for `owner: "ai"`. */
   readonly hint?: string;
   /** Allowed values for `type: "enum"`; the sheet receives `label`. */
   readonly options?: readonly EnumOption[];
@@ -64,16 +64,16 @@ export type ValuesOf<Fs extends readonly FieldDef[]> = {
 };
 
 /**
- * What the LLM returns: only `source: "ai"` fields. Each is nullable ("not found"), except
+ * What the LLM returns: only `owner: "ai"` fields. Each is nullable ("not found"), except
  * lists, where an empty array means "none".
  */
 export type LlmValuesOf<Fs extends readonly FieldDef[]> = {
-  -readonly [F in Fs[number] as F extends { source: "ai" } ? F["key"] : never]: LlmFieldValue<F>;
+  -readonly [F in Fs[number] as F extends { owner: "ai" } ? F["key"] : never]: LlmFieldValue<F>;
 };
 
-/** Values of the fields judged by the assessor: only `source: "assessment"` fields. */
+/** Values of the fields judged by the assessor: only `owner: "assessment"` fields. */
 export type AssessmentValuesOf<Fs extends readonly FieldDef[]> = {
-  -readonly [F in Fs[number] as F extends { source: "assessment" } ? F["key"] : never]: FieldValue<F>;
+  -readonly [F in Fs[number] as F extends { owner: "assessment" } ? F["key"] : never]: FieldValue<F>;
 };
 
 /** A saved job as the Save To picker shows it: identity plus enough text to recognise it. */
@@ -81,7 +81,7 @@ export interface ListedJob {
   readonly id: string;
   readonly company: string;
   readonly jobTitle: string;
-  readonly platform: string | null;
+  readonly source: string | null;
 }
 
 export interface SaveResult {

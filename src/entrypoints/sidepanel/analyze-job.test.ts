@@ -67,8 +67,8 @@ describe("analyzeJob", () => {
 
     expect(extract).toHaveBeenCalledWith("Build things.");
     expect(createExtractor).toHaveBeenCalledWith({ apiKey: "sk-test", model: appConfig.openaiModel });
-    expect(result.values.platform).toBeNull();
-    expect(result.values.jobUrl).toBeNull();
+    expect(result.values.source).toBeNull();
+    expect(result.values.sourceUrl).toBeNull();
     expect(result.values.skills).toEqual(["node.js"]);
     expect(result.missing).toContain("address");
   });

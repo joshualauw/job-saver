@@ -66,14 +66,14 @@ export function buildFormSchema<const Fs extends readonly FieldDef[]>(fields: Fs
 }
 
 /**
- * Schema for OpenAI Structured Outputs. Only `source: "ai"` fields. Strict mode needs every
+ * Schema for OpenAI Structured Outputs. Only `owner: "ai"` fields. Strict mode needs every
  * property present, so "unknown" is `null` (or an empty array for lists), and each field's
  * hint travels as its description.
  */
 export function buildLlmSchema<const Fs extends readonly FieldDef[]>(fields: Fs): z.ZodType<LlmValuesOf<Fs>> {
   const shape: Record<string, z.ZodType> = {};
   for (const field of fields) {
-    if (field.source !== "ai") continue;
+    if (field.owner !== "ai") continue;
     const base = baseSchema(field, "llm");
     const schema = field.type === "stringList" ? base : base.nullable();
     shape[field.key] = field.hint ? schema.describe(field.hint) : schema;

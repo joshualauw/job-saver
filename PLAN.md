@@ -16,10 +16,10 @@ Decisions already made:
 - **Save + "Save To"**: Save creates a job (or updates the one the draft already has). Save To picks an
   existing job from a searchable list and writes the form into it. No dedupe, no upgrade logic, no
   form-prioritisation or per-source behaviour for now. The form simply wins.
-- **Platform and Job URL are plain user input**: platform is free text with a dropdown of common
-  platforms as a template; picking "Other" switches to a manual text input, so it is not a strict
-  enum and any value can be saved. URL is optional and entered and cleaned by the user. No detection,
-  no normalisation. The AI never sets them.
+- **Source and Source URL are plain user input** (first called Platform and Job URL): source is free text with
+  a dropdown of common sources as a template; picking "Other" switches to a manual text input, so it is not a
+  strict enum and any value can be saved. Source URL is optional and entered and cleaned by the user. No
+  detection, no normalisation. The AI never sets them.
 - **Selection-only page analysis**: no whole-page reading, no per-site selectors, no platform
   fixtures, no host-permission flow. Other inputs (paste, image, file) feed the same text box.
 - Images and PDFs go to OpenAI as image/file input (no OCR library, no new dependency without asking).
@@ -158,3 +158,8 @@ No behaviour change beyond the removals. Keep commits small.
   their file used, which were un-exported. For Phase 5, README.md still describes page analysis, "Re-analyze",
   dedicated Jobstreet support, the "Allow Job Saver on this site" prompt, page text and the troubleshooting rows for
   those; ARCHITECTURE.md and CLAUDE.md describe page reading, platforms, selectors and fixtures.
+- Renamed Platform to Source and Job URL to Source URL (keys source and sourceUrl, sheet headers "Source" and
+  "Source URL"). The field definition property that said who owns a value (ai, user, code, assessment) was renamed
+  from source to owner so a field called source does not sit next to it. No compatibility code: the sheet's two
+  headers must be renamed by hand in row 1 (Test connection names any that are missing), and a draft stored under
+  the old keys loses just those two values. Earlier log entries keep the old names on purpose.

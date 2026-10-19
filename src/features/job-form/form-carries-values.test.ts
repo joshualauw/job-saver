@@ -8,8 +8,8 @@ import { jobFormResolver, validateInputs } from "./validate";
 const draft = {
   company: "Ryvo",
   jobTitle: "Senior Full-Stack Developer",
-  platform: "Jobstreet",
-  jobUrl: "https://id.jobstreet.com/id/job/94811596",
+  source: "Jobstreet",
+  sourceUrl: "https://id.jobstreet.com/id/job/94811596",
   skills: ["node.js"],
   preferenceFit: "Yes: Remote work",
   jobId: "abcdefghijkl",

@@ -9,7 +9,7 @@ import { createOpenAIExtractor } from "./openai-extractor";
 
 const text = "Build things.";
 
-const aiKeys = fields.filter((field) => field.source === "ai").map((field) => field.key);
+const aiKeys = fields.filter((field) => field.owner === "ai").map((field) => field.key);
 
 const answer: LlmJobValues = {
   company: "Ryvo",

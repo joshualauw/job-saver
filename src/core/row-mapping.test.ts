@@ -15,8 +15,8 @@ const values = {
   address: null,
   contractType: "full_time",
   locationType: "remote",
-  platform: "Jobstreet",
-  jobUrl: "https://id.jobstreet.com/id/job/12345678",
+  source: "Jobstreet",
+  sourceUrl: "https://id.jobstreet.com/id/job/12345678",
   minYoe: 2,
   skills: ["node.js", "postgres"],
   salaryPeriod: "month",
@@ -177,7 +177,7 @@ describe("fromSheetRow", () => {
 // No configured field is a date today, but the mapping supports them.
 describe("date columns", () => {
   const dated = [
-    { key: "appliedOn", column: "Applied On", label: "Applied on", type: "date", source: "ai", nullable: true },
+    { key: "appliedOn", column: "Applied On", label: "Applied on", type: "date", owner: "ai", nullable: true },
   ] as const satisfies readonly FieldDef[];
   const datedHeader = ["Applied On"];
 
@@ -210,11 +210,11 @@ describe("toSheetCells", () => {
 describe("columnIndexOf", () => {
   it("finds a field's column by header name, wherever it sits", () => {
     const shuffled = ["Comments", ...[...header].reverse()];
-    expect(columnIndexOf(fields, "jobUrl", shuffled)).toBe(shuffled.indexOf("Job URL"));
+    expect(columnIndexOf(fields, "sourceUrl", shuffled)).toBe(shuffled.indexOf("Source URL"));
   });
 
   it("throws MissingColumnsError when the header lacks a configured column", () => {
-    expect(() => columnIndexOf(fields, "jobUrl", ["Job URL"])).toThrow(MissingColumnsError);
+    expect(() => columnIndexOf(fields, "sourceUrl", ["Source URL"])).toThrow(MissingColumnsError);
   });
 });
 

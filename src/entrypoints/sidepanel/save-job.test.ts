@@ -5,7 +5,7 @@ import { UnexpectedError } from "@/core/errors";
 import type { SinkDeps } from "./open-sink";
 import { saveJob } from "./save-job";
 
-const values = { company: "Ryvo", jobId: "abcdefghijkl", jobUrl: "https://id.jobstreet.com/id/job/1" };
+const values = { company: "Ryvo", jobId: "abcdefghijkl", sourceUrl: "https://id.jobstreet.com/id/job/1" };
 
 function deps(settings: Awaited<ReturnType<SinkDeps["readSettings"]>> = { spreadsheetId: "sheet-id" }) {
   const save = vi.fn().mockResolvedValue({ action: "created", row: 4 });

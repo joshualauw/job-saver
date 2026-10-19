@@ -32,8 +32,8 @@ export function SaveToPicker({ list, target, onPick }: Props) {
   const collection = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const items = list.jobs
-      .map((job) => ({ value: job.id, label: jobLabel(job), platform: job.platform }))
-      .filter((item) => needle === "" || `${item.label} ${item.platform ?? ""}`.toLowerCase().includes(needle));
+      .map((job) => ({ value: job.id, label: jobLabel(job), source: job.source }))
+      .filter((item) => needle === "" || `${item.label} ${item.source ?? ""}`.toLowerCase().includes(needle));
     return createListCollection({ items });
   }, [list.jobs, query]);
 
@@ -81,9 +81,9 @@ export function SaveToPicker({ list, target, onPick }: Props) {
                   <Combobox.Item key={item.value} item={item}>
                     <Stack gap="0">
                       <Text>{item.label}</Text>
-                      {item.platform && (
+                      {item.source && (
                         <Text fontSize="xs" color="fg.muted">
-                          {item.platform}
+                          {item.source}
                         </Text>
                       )}
                     </Stack>

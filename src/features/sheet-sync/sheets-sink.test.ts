@@ -24,8 +24,8 @@ function values(overrides: Record<string, unknown> = {}): Record<string, unknown
     address: null,
     contractType: "full_time",
     locationType: "onsite",
-    platform: "Jobstreet",
-    jobUrl: URL_A,
+    source: "Jobstreet",
+    sourceUrl: URL_A,
     jobId: ID_A,
     minYoe: null,
     skills: ["node.js"],
@@ -56,9 +56,9 @@ describe("sheets sink: list", () => {
   it("reads the whole tab unformatted and lists the jobs that have an ID, in sheet order", async () => {
     const { sink, get } = fakeClient([
       header,
-      rowFor({ jobId: ID_B, company: "Acme", jobTitle: "Engineer", platform: "LinkedIn" }),
+      rowFor({ jobId: ID_B, company: "Acme", jobTitle: "Engineer", source: "LinkedIn" }),
       rowFor({ jobId: "" }),
-      rowFor({ jobId: ID_A, platform: null }),
+      rowFor({ jobId: ID_A, source: null }),
     ]);
 
     const jobs = await sink.list();
@@ -67,8 +67,8 @@ describe("sheets sink: list", () => {
       `values/${encodeURIComponent("'Jobs'")}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=SERIAL_NUMBER`,
     );
     expect(jobs).toEqual([
-      { id: ID_B, company: "Acme", jobTitle: "Engineer", platform: "LinkedIn" },
-      { id: ID_A, company: "Ryvo", jobTitle: "Senior Full-Stack Developer", platform: null },
+      { id: ID_B, company: "Acme", jobTitle: "Engineer", source: "LinkedIn" },
+      { id: ID_A, company: "Ryvo", jobTitle: "Senior Full-Stack Developer", source: null },
     ]);
   });
 
@@ -161,8 +161,8 @@ describe("sheets sink: save a new job", () => {
 
 describe("sheets sink: save over an existing job", () => {
   it("finds the job by its ID even when its URL differs, so a job can change source", async () => {
-    const { sink } = fakeClient([header, rowFor({ jobId: ID_B }), rowFor({ jobUrl: "https://other.example/job" })]);
-    expect(await sink.save(values({ jobUrl: null }))).toEqual({ action: "updated", row: 3 });
+    const { sink } = fakeClient([header, rowFor({ jobId: ID_B }), rowFor({ sourceUrl: "https://other.example/job" })]);
+    expect(await sink.save(values({ sourceUrl: null }))).toEqual({ action: "updated", row: 3 });
   });
 
   it("updates only the cells the app owns, so user columns are untouched", async () => {

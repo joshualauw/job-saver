@@ -30,11 +30,11 @@ function isBlank(value: unknown): boolean {
   return value === null || value === undefined || (typeof value === "string" && value.trim() === "");
 }
 
-const AI_KEYS: ReadonlySet<string> = new Set(fields.filter((field) => field.source === "ai").map((field) => field.key));
+const AI_KEYS: ReadonlySet<string> = new Set(fields.filter((field) => field.owner === "ai").map((field) => field.key));
 
 /**
  * Merges what code knows (a fresh job ID) with what the model returned. Code-owned fields
- * always win, and the model never sets them. Platform and job URL are the user's to fill in.
+ * always win, and the model never sets them. Source and source URL are the user's to fill in.
  */
 export function buildJobDraft({ llm, newId = newJobId }: BuildDraftInput): BuildDraftResult {
   const merged: Record<string, unknown> = {};
@@ -50,7 +50,7 @@ export function buildJobDraft({ llm, newId = newJobId }: BuildDraftInput): Build
     if (field.type === "stringList") continue;
     if (isBlank(merged[field.key])) {
       merged[field.key] = null;
-      if (field.source === "ai") missing.push(field.key);
+      if (field.owner === "ai") missing.push(field.key);
     }
   }
 

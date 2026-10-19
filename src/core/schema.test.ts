@@ -12,8 +12,8 @@ const validJob: JobValues = {
   address: null,
   contractType: "full_time",
   locationType: "hybrid",
-  platform: "Jobstreet",
-  jobUrl: "https://id.jobstreet.com/id/job/12345678",
+  source: "Jobstreet",
+  sourceUrl: "https://id.jobstreet.com/id/job/12345678",
   minYoe: 3,
   skills: ["node.js", "postgres"],
   salaryPeriod: "month",
@@ -36,20 +36,20 @@ describe("buildFormSchema", () => {
     expect(jobFormSchema.safeParse({ ...validJob, jobId: "" }).success).toBe(false);
   });
 
-  it("treats platform and job URL as optional user input", () => {
-    expect(jobFormSchema.safeParse({ ...validJob, platform: null, jobUrl: null }).success).toBe(true);
+  it("treats source and source URL as optional user input", () => {
+    expect(jobFormSchema.safeParse({ ...validJob, source: null, sourceUrl: null }).success).toBe(true);
   });
 
-  it("accepts any platform text, since the suggestions are only a template", () => {
-    expect(jobFormSchema.safeParse({ ...validJob, platform: "My cousin's company" }).success).toBe(true);
+  it("accepts any source text, since the suggestions are only a template", () => {
+    expect(jobFormSchema.safeParse({ ...validJob, source: "My cousin's company" }).success).toBe(true);
   });
 
-  it("accepts an http(s) job URL as typed and rejects anything else", () => {
-    expect(jobFormSchema.safeParse({ ...validJob, jobUrl: "https://example.com/jobs/1?utm_source=x" }).success).toBe(
+  it("accepts an http(s) source URL as typed and rejects anything else", () => {
+    expect(jobFormSchema.safeParse({ ...validJob, sourceUrl: "https://example.com/jobs/1?utm_source=x" }).success).toBe(
       true,
     );
-    expect(jobFormSchema.safeParse({ ...validJob, jobUrl: "example.com/jobs/1" }).success).toBe(false);
-    expect(jobFormSchema.safeParse({ ...validJob, jobUrl: "javascript:alert(1)" }).success).toBe(false);
+    expect(jobFormSchema.safeParse({ ...validJob, sourceUrl: "example.com/jobs/1" }).success).toBe(false);
+    expect(jobFormSchema.safeParse({ ...validJob, sourceUrl: "javascript:alert(1)" }).success).toBe(false);
   });
 
   it("allows null only on nullable fields", () => {
@@ -63,7 +63,7 @@ describe("buildFormSchema", () => {
 
   it("rejects malformed and impossible dates", () => {
     const schema = buildFormSchema([
-      { key: "appliedOn", column: "Applied On", label: "Applied on", type: "date", source: "ai", nullable: true },
+      { key: "appliedOn", column: "Applied On", label: "Applied on", type: "date", owner: "ai", nullable: true },
     ] as const);
     expect(schema.safeParse({ appliedOn: "15/10/2026" }).success).toBe(false);
     expect(schema.safeParse({ appliedOn: "2026-02-31" }).success).toBe(false);
@@ -93,7 +93,7 @@ describe("buildFormSchema", () => {
 
   it("can require a non-empty list", () => {
     const schema = buildFormSchema([
-      { key: "tags", column: "Tags", label: "Tags", type: "stringList", source: "user", required: true },
+      { key: "tags", column: "Tags", label: "Tags", type: "stringList", owner: "user", required: true },
     ] as const);
     expect(schema.safeParse({ tags: [] }).success).toBe(false);
     expect(schema.safeParse({ tags: [" "] }).success).toBe(false);
@@ -102,13 +102,13 @@ describe("buildFormSchema", () => {
 
   it("throws on an enum field without options", () => {
     expect(() =>
-      buildFormSchema([{ key: "x", column: "X", label: "X", type: "enum", source: "user" }] as const),
+      buildFormSchema([{ key: "x", column: "X", label: "X", type: "enum", owner: "user" }] as const),
     ).toThrow(/no options/);
   });
 });
 
 describe("buildLlmSchema", () => {
-  const aiFields = fields.filter((field) => field.source === "ai");
+  const aiFields = fields.filter((field) => field.owner === "ai");
   const aiKeys = aiFields.map((field) => field.key);
   // "Nothing found": null for scalars, an empty array for lists.
   const nothingFound = Object.fromEntries(
@@ -142,7 +142,7 @@ describe("buildLlmSchema", () => {
 
   it("does not require non-empty strings (that is a save-time rule)", () => {
     const schema = buildLlmSchema([
-      { key: "name", column: "Name", label: "Name", type: "string", source: "ai", required: true },
+      { key: "name", column: "Name", label: "Name", type: "string", owner: "ai", required: true },
     ] as const);
     expect(schema.safeParse({ name: "" }).success).toBe(true);
   });
@@ -160,7 +160,7 @@ describe("buildLlmSchema", () => {
 });
 
 describe("assessment fields", () => {
-  const assessmentKeys = fields.filter((field) => field.source === "assessment").map((field) => field.key);
+  const assessmentKeys = fields.filter((field) => field.owner === "assessment").map((field) => field.key);
 
   it("exist for the preference fit only", () => {
     expect(assessmentKeys).toEqual(["preferenceFit"]);
