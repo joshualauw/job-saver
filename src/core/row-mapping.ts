@@ -81,6 +81,7 @@ function encodeCell(field: FieldDef, value: unknown): string | number {
     }
     case "string":
     case "text":
+    case "url":
       return asText(String(value));
   }
 }
@@ -176,6 +177,7 @@ function decodeCell(field: FieldDef, raw: RawCell): CellValue {
     }
     case "string":
     case "text":
+    case "url":
       return String(raw);
   }
 }

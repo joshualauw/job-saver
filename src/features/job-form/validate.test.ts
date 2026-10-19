@@ -52,6 +52,11 @@ describe("validateInputs", () => {
     expect(errorsOf({ ...valid, minSalary: "8 juta" })["minSalary"]).toBe("Must be a number");
   });
 
+  it("explains link problems and lets platform and URL stay empty", () => {
+    expect(errorsOf({ ...valid, jobUrl: "example.com" })["jobUrl"]).toBe("Must start with http:// or https://");
+    expect(validateInputs({ ...valid, jobUrl: "", platform: "" }).ok).toBe(true);
+  });
+
   it("explains enum problems", () => {
     expect(errorsOf({ ...valid, contractType: "dreaming" })["contractType"]).toBe("Pick one of the options");
   });

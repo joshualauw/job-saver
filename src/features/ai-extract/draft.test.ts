@@ -159,10 +159,11 @@ describe("buildJobDraft details", () => {
     expect(second).not.toBe(first);
   });
 
-  it("leaves platform and jobUrl empty (and flagged) when the URL is unusable", () => {
+  it("leaves platform and jobUrl empty, without flagging them, when the URL is unusable", () => {
     const { values, missing } = buildJobDraft({ source: null, llm: answerFor("1") });
     expect(values.platform).toBeNull();
     expect(values.jobUrl).toBeNull();
-    expect(missing).toEqual(expect.arrayContaining(["platform", "jobUrl"]));
+    expect(missing).not.toContain("platform");
+    expect(missing).not.toContain("jobUrl");
   });
 });

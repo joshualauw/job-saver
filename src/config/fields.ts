@@ -25,6 +25,17 @@ const salaryPeriods = [
   { value: "year", label: "Year" },
 ] as const;
 
+/** Where a job was found. A template for the Platform field, not a closed list: any text is valid. */
+const platformSuggestions = [
+  "LinkedIn",
+  "Jobstreet",
+  "Glints",
+  "Indeed",
+  "Kalibrr",
+  "Company website",
+  "Referral",
+] as const;
+
 /**
  * THE source of truth for tracked job fields. Schemas, the form, the LLM schema, and the
  * sheet mapping are all derived from this list (see ARCHITECTURE.md).
@@ -82,16 +93,17 @@ export const fields = [
     column: "Platform",
     label: "Platform",
     type: "string",
-    source: "derived",
-    required: true,
+    source: "user",
+    nullable: true,
+    suggestions: platformSuggestions,
   },
   {
     key: "jobUrl",
     column: "Job URL",
     label: "Job URL",
-    type: "string",
-    source: "derived",
-    required: true,
+    type: "url",
+    source: "user",
+    nullable: true,
   },
   {
     key: "minYoe",

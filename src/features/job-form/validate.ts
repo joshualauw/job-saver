@@ -23,7 +23,7 @@ function messageFor(issue: ZodIssue, key: string, typed: Readonly<Record<string,
     case "invalid_value":
       return "Pick one of the options";
     case "custom":
-      return "Required";
+      return field?.type === "url" ? "Must start with http:// or https://" : "Required";
     default:
       return issue.message;
   }

@@ -16,9 +16,10 @@ Decisions already made:
 - **Save + "Save To"**: Save creates a job (or updates the one the draft already has). Save To picks an
   existing job from a searchable list and writes the form into it. No dedupe, no upgrade logic, no
   form-prioritisation or per-source behaviour for now. The form simply wins.
-- **Platform and Job URL are plain user input**: platform is a dropdown (common platforms plus
-  Other), URL is optional and entered and cleaned by the user. No detection, no normalisation. The AI
-  never sets them.
+- **Platform and Job URL are plain user input**: platform is free text with a dropdown of common
+  platforms as a template; picking "Other" switches to a manual text input, so it is not a strict
+  enum and any value can be saved. URL is optional and entered and cleaned by the user. No detection,
+  no normalisation. The AI never sets them.
 - **Selection-only page analysis**: no whole-page reading, no per-site selectors, no platform
   fixtures, no host-permission flow. Other inputs (paste, image, file) feed the same text box.
 - Images and PDFs go to OpenAI as image/file input (no OCR library, no new dependency without asking).
@@ -40,11 +41,13 @@ Decisions already made:
 
 ## Phase 2: Platform and URL become user input
 
-- [ ] Platform becomes a dropdown field (common platforms plus Other), URL an optional field; both user-owned
-      and nullable.
-- [ ] Form inputs, with a light http(s) check on the URL and inline errors.
-- [ ] Formula-injection guard still covers both.
-- [ ] Tests for the field definitions and form validation.
+- [x] Platform becomes a free-text field (any value is valid, not an enum) with a dropdown of common
+      platforms as a template; choosing "Other" reveals a manual text input. A saved value that is not in
+      the template (e.g. an old hostname) shows as manual text. URL becomes an optional field; both are
+      user-owned and nullable.
+- [x] Form inputs, with a light http(s) check on the URL and inline errors.
+- [x] Formula-injection guard still covers both.
+- [x] Tests for the field definitions and form validation.
 
 ## Phase 3: Selection-only, remove page analysis
 
@@ -87,8 +90,18 @@ this phase.
 
 - Initial plan agreed. Open question: should analysis only start from an explicit action (button or
   context-menu click), never automatically on selection? Leaning explicit, to avoid accidental OpenAI calls.
+- Platform decision changed: "Other" in the platform dropdown triggers a manual text input rather than being an
+  enum value; the dropdown is only a template of common platforms, and the stored value is plain text.
 - Phase 1 built (typecheck, lint and tests pass; the Save To picker and the backfill button were then tried
   in the browser against a real sheet and work). Choices made while building:
   the saved-jobs list loads once a form is on screen (not at panel open), so Google's sign-in prompt follows a
   user action; the main button reads "Update job" when a target is picked; drafts restored from before job IDs
   existed get an ID on restore.
+- Phase 2 built (typecheck, lint, tests pass; the platform control and URL check have not been tried in the
+  browser yet). Platform and URL are now user-owned and optional. The page-based prefill of both stays until
+  Phase 3 removes detection, so a prefilled value that is not in the template (a hostname) shows as manual text.
+- Phase 2 platform control was tried in a browser and crashed the whole panel when "Other" was picked: the manual
+  text box shared the field's ID with the dropdown's hidden select, so the dropdown found an input instead of a
+  select. Fixed by giving the text box its own ID (it now also takes focus). Verified in a browser for Other
+  and for switching back to a template value. Not covered by an automated test: the test DOM (happy-dom) cannot
+  render this dropdown.

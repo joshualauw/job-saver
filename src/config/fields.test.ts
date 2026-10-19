@@ -28,6 +28,18 @@ describe("field config", () => {
     }
   });
 
+  it("makes platform a free-text field with suggestions, not an enum, and the job URL an optional link", () => {
+    const platform = fields.find((field) => field.key === "platform");
+    expect(platform).toMatchObject({ type: "string", source: "user", nullable: true });
+    expect(platform && "suggestions" in platform && platform.suggestions.length).toBeGreaterThan(0);
+    expect(platform && "options" in platform).toBe(false);
+    expect(fields.find((field) => field.key === "jobUrl")).toMatchObject({
+      type: "url",
+      source: "user",
+      nullable: true,
+    });
+  });
+
   it("keeps the job ID code-owned, required and out of the form inputs", () => {
     const jobId = fields.find((field) => field.key === "jobId");
     expect(jobId).toMatchObject({ column: "Job ID", source: "derived", required: true, hidden: true });

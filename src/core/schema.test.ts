@@ -33,8 +33,23 @@ describe("buildFormSchema", () => {
 
   it("rejects blank required fields", () => {
     expect(jobFormSchema.safeParse({ ...validJob, company: "   " }).success).toBe(false);
-    expect(jobFormSchema.safeParse({ ...validJob, jobUrl: "" }).success).toBe(false);
     expect(jobFormSchema.safeParse({ ...validJob, jobId: "" }).success).toBe(false);
+  });
+
+  it("treats platform and job URL as optional user input", () => {
+    expect(jobFormSchema.safeParse({ ...validJob, platform: null, jobUrl: null }).success).toBe(true);
+  });
+
+  it("accepts any platform text, since the suggestions are only a template", () => {
+    expect(jobFormSchema.safeParse({ ...validJob, platform: "My cousin's company" }).success).toBe(true);
+  });
+
+  it("accepts an http(s) job URL as typed and rejects anything else", () => {
+    expect(jobFormSchema.safeParse({ ...validJob, jobUrl: "https://example.com/jobs/1?utm_source=x" }).success).toBe(
+      true,
+    );
+    expect(jobFormSchema.safeParse({ ...validJob, jobUrl: "example.com/jobs/1" }).success).toBe(false);
+    expect(jobFormSchema.safeParse({ ...validJob, jobUrl: "javascript:alert(1)" }).success).toBe(false);
   });
 
   it("allows null only on nullable fields", () => {

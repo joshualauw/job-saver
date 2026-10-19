@@ -6,7 +6,7 @@ import type { PagePayload } from "./page-payload";
  */
 export type FieldSource = "ai" | "derived" | "user" | "assessment";
 /** `stringList` is a list of lowercase strings (e.g. skills); one comma-separated sheet cell. */
-export type FieldType = "string" | "text" | "number" | "date" | "enum" | "stringList";
+export type FieldType = "string" | "text" | "url" | "number" | "date" | "enum" | "stringList";
 
 export interface EnumOption {
   readonly value: string;
@@ -33,6 +33,11 @@ export interface FieldDef {
    * where an empty array already means "none".
    */
   readonly nullable?: boolean;
+  /**
+   * Common values offered as a template for a free-text field; any text is still valid. Unlike
+   * `options`, this is not a closed list.
+   */
+  readonly suggestions?: readonly string[];
   /** Carried through the form and saved, but never shown as an input (e.g. the job ID). */
   readonly hidden?: boolean;
 }

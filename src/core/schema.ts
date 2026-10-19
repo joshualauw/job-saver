@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { parseHttpUrl } from "@/lib/url";
+
 import { normalizeList } from "./normalize";
 import type { FieldDef, LlmValuesOf, ValuesOf } from "./types";
 
@@ -27,6 +29,12 @@ function baseSchema(field: FieldDef, mode: SchemaMode): z.ZodType {
       const text = z.string().trim();
       return requireNonEmpty ? text.min(1) : text;
     }
+    case "url":
+      // Optional links reach here only when non-empty (blank becomes null first), so this is also the "required" check.
+      return z
+        .string()
+        .trim()
+        .refine((text) => parseHttpUrl(text) !== null);
     case "number":
       return z.number().finite().nonnegative();
     case "date":
