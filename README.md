@@ -71,7 +71,7 @@ Settings) and put these headers in row 1. Order does not matter, and you can add
 columns.
 
 ```
-Company	Job Title	Address	Contract Type	Location Type	Source	Source URL	Min YOE	Skills	Salary Period	Salary Currency	Min Salary	Max Salary	Summary	Notes	Preference Fit	Job ID
+Company	Job Title	Address	Contract Type	Location Type	Source	Source URL	Min YOE	Skills	Salary Currency	Salary Period	Min Salary	Max Salary	Summary	Notes	Preference Fit	Job ID
 ```
 
 The list comes from [`src/config/fields.ts`](src/config/fields.ts), which is the single source of

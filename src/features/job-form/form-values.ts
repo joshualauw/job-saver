@@ -7,6 +7,25 @@ import { LIST_SEPARATOR, splitList } from "@/core/normalize";
  */
 export const formFields = fields.filter((field) => field.owner === "ai" || field.owner === "user");
 
+export type FormField = (typeof formFields)[number];
+
+/**
+ * The form's fields in display order, with neighbours that share a `row` grouped so they can sit side
+ * by side. A field without a row is a group of one.
+ */
+export function groupByRow(list: readonly FormField[]): FormField[][] {
+  const groups: FormField[][] = [];
+  let currentRow: string | undefined;
+  for (const field of list) {
+    const row = "row" in field ? field.row : undefined;
+    const last = groups[groups.length - 1];
+    if (row !== undefined && row === currentRow && last) last.push(field);
+    else groups.push([field]);
+    currentRow = row;
+  }
+  return groups;
+}
+
 /** Form state: every field as the string shown in its input, keyed by field key. */
 export type FormInputs = Record<string, string>;
 

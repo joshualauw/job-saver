@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { appConfig } from "@/config/app";
 import type { AssessmentValues, LlmJobValues } from "@/config/fields";
 import { AuthError, InputError, NetworkError, RateLimitError } from "@/core/errors";
-import type { AnalyzeInput, MediaAttachment } from "@/core/types";
+import type { AnalyzeInput, AnalyzeProgress, MediaAttachment } from "@/core/types";
 
 import { analyzeJob } from "./analyze-job";
 import type { AnalyzeDeps } from "./analyze-job";
@@ -227,5 +227,67 @@ describe("analyzeJob with the assessor", () => {
 
     await expect(analyzeJob(INPUT, all)).rejects.toBeInstanceOf(NetworkError);
     await vi.waitFor(() => expect(assess).toHaveBeenCalledOnce());
+  });
+});
+
+describe("analyzeJob progress", () => {
+  function recorder() {
+    const events: AnalyzeProgress[] = [];
+    return { events, report: (event: AnalyzeProgress) => events.push(event) };
+  }
+
+  it("plans only the form for plain text with no preferences", async () => {
+    const { all } = deps();
+    const { events, report } = recorder();
+    await analyzeJob(INPUT, all, report);
+
+    expect(events).toEqual([
+      { kind: "plan", steps: ["filling"] },
+      { kind: "start", step: "filling" },
+      { kind: "done", step: "filling" },
+    ]);
+  });
+
+  it("adds the preference check when preferences are set, running alongside the form", async () => {
+    const { all } = deps({ readSettings: withPreferences });
+    const { events, report } = recorder();
+    await analyzeJob(INPUT, all, report);
+
+    expect(events[0]).toEqual({ kind: "plan", steps: ["filling", "checking"] });
+    expect(events).toContainEqual({ kind: "start", step: "filling" });
+    expect(events).toContainEqual({ kind: "start", step: "checking" });
+    expect(events).toContainEqual({ kind: "done", step: "filling" });
+    expect(events).toContainEqual({ kind: "done", step: "checking" });
+    // Both started before either finished.
+    const lastStart = Math.max(events.findIndex((e) => e.kind === "start" && e.step === "filling"), events.findIndex((e) => e.kind === "start" && e.step === "checking"));
+    const firstDone = events.findIndex((e) => e.kind === "done");
+    expect(lastStart).toBeLessThan(firstDone);
+  });
+
+  it("reads media first, and finishes that before the form starts", async () => {
+    const { all } = deps({ readSettings: withPreferences });
+    const { events, report } = recorder();
+    await analyzeJob(media, all, report);
+
+    expect(events[0]).toEqual({ kind: "plan", steps: ["reading", "filling", "checking"] });
+    expect(events[1]).toEqual({ kind: "start", step: "reading" });
+    expect(events[2]).toEqual({ kind: "done", step: "reading" });
+    expect(events[3]).toEqual({ kind: "start", step: "filling" });
+  });
+
+  it("still finishes the preference check when it fails, so the checklist never hangs", async () => {
+    const { all, assess } = deps({ readSettings: withPreferences });
+    assess.mockRejectedValue(new RateLimitError("limited"));
+    const { events, report } = recorder();
+    await analyzeJob(INPUT, all, report);
+
+    expect(events).toContainEqual({ kind: "done", step: "checking" });
+  });
+
+  it("reports nothing before a missing key is caught", async () => {
+    const { all } = deps({ readSettings: () => Promise.resolve({}) });
+    const { events, report } = recorder();
+    await expect(analyzeJob(INPUT, all, report)).rejects.toBeInstanceOf(AuthError);
+    expect(events).toEqual([]);
   });
 });

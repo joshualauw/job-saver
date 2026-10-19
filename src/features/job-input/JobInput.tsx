@@ -1,9 +1,12 @@
 import { Accordion, Button, Stack, Tabs, Text } from "@chakra-ui/react";
 import { useState } from "react";
 
+import type { StepState } from "@/core/types";
+
 import { FileIcon } from "./icons/FileIcon";
 import { ImageIcon } from "./icons/ImageIcon";
 import { TextIcon } from "./icons/TextIcon";
+import { AnalyzeProgress } from "./AnalyzeProgress";
 import { FileTab } from "./FileTab";
 import { ImageTab } from "./ImageTab";
 import { TextTab } from "./TextTab";
@@ -18,12 +21,14 @@ interface Props {
   hasForm: boolean;
   onAnalyze: () => void;
   analyzing: boolean;
+  /** The stages of the analysis in progress, shown under the button. */
+  steps: readonly StepState[];
   /** Analyzing is not possible yet for a reason outside the tabs (no API key). */
   blocked: boolean;
 }
 
 /** Three ways to give the panel a job posting. Only the tab being shown is analyzed. */
-export function JobInput({ input, hasForm, onAnalyze, analyzing, blocked }: Props) {
+export function JobInput({ input, hasForm, onAnalyze, analyzing, steps, blocked }: Props) {
   // Open while there is no form, folded when one appears or goes away; the user can still toggle it.
   const [open, setOpen] = useState(!hasForm);
   const [lastHasForm, setLastHasForm] = useState(hasForm);
@@ -100,6 +105,8 @@ export function JobInput({ input, hasForm, onAnalyze, analyzing, blocked }: Prop
       >
         {input.analyzeLabel}
       </Button>
+
+      {analyzing && <AnalyzeProgress steps={steps} tab={input.tab} />}
     </Stack>
   );
 }

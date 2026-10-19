@@ -40,6 +40,10 @@ export interface FieldDef {
    * `options`, this is not a closed list.
    */
   readonly suggestions?: readonly string[];
+  /** Fields that are next to each other and share this name are shown side by side in the form. */
+  readonly row?: string;
+  /** A fixed label shown after the input (for example "years"); not an input itself. */
+  readonly unit?: string;
 }
 
 type FieldBaseValue<F extends FieldDef> = F["type"] extends "number"
@@ -135,4 +139,17 @@ export type AnalyzeInput =
 /** Reads the text out of images or a PDF (OpenAI today); implementations live in features. */
 export interface Transcriber {
   transcribe(items: readonly MediaAttachment[]): Promise<string>;
+}
+
+/** The stages of "Analyze" that are shown to the user while it runs. */
+export type AnalyzeStep = "reading" | "filling" | "checking";
+
+/** What `analyzeJob` reports: which stages will run, then when each starts and finishes. */
+export type AnalyzeProgress =
+  | { readonly kind: "plan"; readonly steps: readonly AnalyzeStep[] }
+  | { readonly kind: "start" | "done"; readonly step: AnalyzeStep };
+
+export interface StepState {
+  readonly step: AnalyzeStep;
+  readonly status: "pending" | "running" | "done";
 }

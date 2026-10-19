@@ -112,17 +112,17 @@ Visual
       ask for confirmation only when the form has been edited.
 
 Form behaviour
-- [ ] Loading steps under the Analyze button, in sentences (logic: analyze reports progress). The steps are not strictly
+- [x] Loading steps under the Analyze button, in sentences (logic: analyze reports progress). The steps are not strictly
       sequential: reading an image or file (media only), then filling the form and checking preferences (only when
       preferences are set) run together, so show a checklist where each line ticks off when its own work finishes.
-- [ ] Side-by-side fields, with the layout declared in the field config (field names live only there): contract type and
+- [x] Side-by-side fields, with the layout declared in the field config (field names live only there): contract type and
       location type; source and its "Other" text box; salary currency and salary period (swap their order, which also
       changes the README header line, not the sheet); min and max salary; min years of experience with a fixed "years"
       label beside the number (a label, not an input).
-- [ ] Skills as a Chakra tags input, converting to and from the existing comma-separated form value and keeping the
+- [x] Skills as a Chakra tags input, converting to and from the existing comma-separated form value and keeping the
       lowercase and de-duplication rules at save. Check in a browser (the test DOM cannot render it) and watch for
       shared field IDs, as with the source dropdown.
-- [ ] Tests for the progress steps, the row grouping and the skills conversion; check the form in a browser with a stubbed
+- [x] Tests for the progress steps, the row grouping and the skills conversion; check the form in a browser with a stubbed
       chrome; typecheck, lint and tests pass.
 
 ## Phase 6: Docs and release
@@ -199,3 +199,16 @@ Form behaviour
   discarded; its content stays mounted so nothing typed or added is lost. Re-Analyze overwrites the form with no
   confirmation for now: whether to confirm when the form was edited is still open. The form-behaviour group (loading
   steps, side-by-side fields, skills tags) is next.
+- Phase 5 form-behaviour group built (typecheck, lint, 337 tests pass; checked in a browser with a stubbed chrome:
+  side-by-side rows, source with its Other box, years label, skills tags, and the checklist with a slowed network
+  call). Loading steps: analyze reports a plan then start and done for each stage, so the checklist lists only the
+  stages that apply and the form and preference check tick off on their own; a failed preference check still
+  finishes its line. Layout: fields carry a row name and an optional unit in the field config, and neighbours with
+  the same row sit side by side. Salary currency now comes before salary period, so the README header line changed
+  (the sheet does not need reordering). Skills use Chakra's tags input: typing or pasting "a, b" makes two lowercase
+  tags and the stored value is still one comma-separated string. Caught in the browser: a flex setting on number
+  inputs squashed Min and Max salary; fixed so only the years row uses it. Open from the visual group: whether
+  Re-Analyze should confirm when the form was edited. Phase 5 is otherwise done; Phase 6 (docs, release) is next.
+- The "Not found" badge was removed: next to the label it pushed fields out of line in the side-by-side rows. An empty
+  field the AI found nothing for now gets an orange outline and "Not found" as its placeholder, which clears as soon as
+  something is typed or picked. Loading steps also lost their numbers and use a smaller, muted style.

@@ -146,6 +146,7 @@ export function App() {
               hasForm={session !== null}
               onAnalyze={runAnalysis}
               analyzing={analyze.isPending}
+              steps={analyze.steps}
               blocked={!hasKey}
             />
 

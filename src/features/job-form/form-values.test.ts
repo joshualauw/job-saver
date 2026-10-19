@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { fields } from "@/config/fields";
 
-import { formFields, fromFormInputs, toFormInputs } from "./form-values";
+import { formFields, fromFormInputs, groupByRow, toFormInputs } from "./form-values";
 
 const draft = {
   company: "Ryvo",
@@ -76,5 +76,30 @@ describe("fromFormInputs", () => {
 
   it("treats missing inputs as empty", () => {
     expect(fromFormInputs({})["summary"]).toBeNull();
+  });
+});
+
+describe("groupByRow", () => {
+  const keys = (groups: ReturnType<typeof groupByRow>) => groups.map((group) => group.map((field) => field.key));
+
+  it("keeps every form field, in order, and groups only neighbours that share a row", () => {
+    const groups = groupByRow(formFields);
+    expect(groups.flat().map((field) => field.key)).toEqual(formFields.map((field) => field.key));
+    expect(keys(groups)).toContainEqual(["contractType", "locationType"]);
+    expect(keys(groups)).toContainEqual(["salaryCurrency", "salaryPeriod"]);
+    expect(keys(groups)).toContainEqual(["minSalary", "maxSalary"]);
+  });
+
+  it("leaves fields without a row alone", () => {
+    const groups = keys(groupByRow(formFields));
+    expect(groups).toContainEqual(["company"]);
+    expect(groups).toContainEqual(["source"]);
+    expect(groups).toContainEqual(["skills"]);
+  });
+
+  it("does not join two rows with the same name when something else sits between them", () => {
+    const [company, , contract, location] = [formFields[0], formFields[1], formFields.find((f) => f.key === "contractType"), formFields.find((f) => f.key === "locationType")];
+    if (!company || !contract || !location) throw new Error("fixture");
+    expect(keys(groupByRow([contract, company, location]))).toEqual([["contractType"], ["company"], ["locationType"]]);
   });
 });

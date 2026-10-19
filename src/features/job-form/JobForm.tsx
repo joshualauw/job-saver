@@ -1,4 +1,4 @@
-import { Alert, Button, HStack, Stack, Text } from "@chakra-ui/react";
+import { Alert, Button, HStack, SimpleGrid, Stack, Text } from "@chakra-ui/react";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -10,7 +10,7 @@ import { FieldInput } from "./FieldInput";
 import { SaveToPicker } from "./SaveToPicker";
 import type { JobListState } from "./SaveToPicker";
 import { jobFormResolver, validateInputs } from "./validate";
-import { formFields } from "./form-values";
+import { formFields, groupByRow } from "./form-values";
 import type { FormInputs } from "./form-values";
 
 interface Props {
@@ -68,15 +68,19 @@ export function JobForm({
   return (
     <form onSubmit={submit} noValidate>
       <Stack gap="3">
-        {formFields.map((field) => (
-          <FieldInput
-            key={field.key}
-            field={field}
-            register={form.register}
-            control={form.control}
-            error={errors[field.key]?.message}
-            notFound={missing.includes(field.key) && (current[field.key] ?? "").trim() === ""}
-          />
+        {groupByRow(formFields).map((group) => (
+          <SimpleGrid key={group.map((field) => field.key).join("+")} columns={group.length} gap="3">
+            {group.map((field) => (
+              <FieldInput
+                key={field.key}
+                field={field}
+                register={form.register}
+                control={form.control}
+                error={errors[field.key]?.message}
+                notFound={missing.includes(field.key) && (current[field.key] ?? "").trim() === ""}
+              />
+            ))}
+          </SimpleGrid>
         ))}
 
         {assessment}
