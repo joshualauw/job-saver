@@ -122,3 +122,20 @@ export interface AssessmentInput {
 export interface Assessor<T> {
   assess(input: AssessmentInput): Promise<T>;
 }
+
+/** An image or PDF ready to send to the model, as a data URL. */
+export interface MediaAttachment {
+  readonly name: string;
+  readonly mimeType: string;
+  readonly dataUrl: string;
+}
+
+/** What "Analyze" works on: the Text tab's text, or the images / PDF from the Image and File tabs. */
+export type AnalyzeInput =
+  | { readonly kind: "text"; readonly text: string }
+  | { readonly kind: "media"; readonly items: readonly MediaAttachment[] };
+
+/** Reads the text out of images or a PDF (OpenAI today); implementations live in features. */
+export interface Transcriber {
+  transcribe(items: readonly MediaAttachment[]): Promise<string>;
+}

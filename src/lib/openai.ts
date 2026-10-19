@@ -48,7 +48,7 @@ export function mapOpenAIError(error: unknown): AppError {
   }
   if (status !== null && status >= 400) {
     return new UnexpectedError(
-      `OpenAI rejected the request (status ${status}). Check the model name; it may not support structured outputs.`,
+      `OpenAI rejected the request (status ${status}). Check the model name; it may not support structured outputs, images or files.`,
       options,
     );
   }
@@ -119,4 +119,38 @@ export async function requestStructured<T>(request: StructuredRequest<T>): Promi
     });
   }
   return parsed.data;
+}
+
+export interface TextRequest {
+  readonly client: OpenAIClient;
+  readonly model: string;
+  /** Rules only; never page or personal content. */
+  readonly system: string;
+  /** The user message: text, images and files. */
+  readonly user: OpenAI.Responses.ResponseInputMessageContentList;
+}
+
+/**
+ * One plain-text call (for reading images and PDFs). Same guarantees as `requestStructured`: nothing
+ * is kept on OpenAI's side, a refusal is a `SchemaError`, and failures become typed errors.
+ */
+export async function requestText(request: TextRequest): Promise<string> {
+  let response;
+  try {
+    response = await request.client.responses.create({
+      model: request.model,
+      store: false,
+      input: [
+        { role: "system", content: request.system },
+        { role: "user", content: request.user },
+      ],
+    });
+  } catch (error) {
+    throw mapOpenAIError(error);
+  }
+
+  if (findRefusal(response.output) !== null) {
+    throw new SchemaError("The model declined to read this file.");
+  }
+  return response.output_text;
 }

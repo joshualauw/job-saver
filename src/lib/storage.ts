@@ -4,8 +4,8 @@ import { sessionGet, sessionSet, storageGet, storageSet } from "./chrome";
 
 const SETTINGS_KEY = "settings";
 const DRAFT_KEY = "draft";
-/** Session-storage key the background worker writes the right-clicked selection to. */
-export const SELECTION_KEY = "selection";
+/** Session-storage key for the Text tab's content; the background worker writes right-clicked text here. */
+export const INPUT_TEXT_KEY = "input-text";
 
 const optionalText = z.string().trim().optional();
 
@@ -82,23 +82,23 @@ export async function clearDraft(adapter: StorageAdapter = sessionAdapter): Prom
   await adapter.set(DRAFT_KEY, null);
 }
 
-const selectionSchema = z.object({ text: z.string() });
+const inputTextSchema = z.object({ text: z.string() });
 
-/** The text last sent to the panel with the right-click menu; `null` when there is none. */
-export async function readCapturedSelection(adapter: StorageAdapter = sessionAdapter): Promise<string | null> {
-  return parseCapturedSelection(await adapter.get(SELECTION_KEY));
+/** The Text tab's saved content (typed, pasted or sent with the right-click menu); `null` when empty. */
+export async function readInputText(adapter: StorageAdapter = sessionAdapter): Promise<string | null> {
+  return parseInputText(await adapter.get(INPUT_TEXT_KEY));
 }
 
-export async function writeCapturedSelection(text: string, adapter: StorageAdapter = sessionAdapter): Promise<void> {
-  await adapter.set(SELECTION_KEY, { text });
+export async function writeInputText(text: string, adapter: StorageAdapter = sessionAdapter): Promise<void> {
+  await adapter.set(INPUT_TEXT_KEY, { text });
 }
 
-export async function clearCapturedSelection(adapter: StorageAdapter = sessionAdapter): Promise<void> {
-  await adapter.set(SELECTION_KEY, null);
+export async function clearInputText(adapter: StorageAdapter = sessionAdapter): Promise<void> {
+  await adapter.set(INPUT_TEXT_KEY, null);
 }
 
-/** Reads a raw session value (from a storage change event) the same way `readCapturedSelection` does. */
-export function parseCapturedSelection(value: unknown): string | null {
-  const parsed = selectionSchema.safeParse(value);
+/** Reads a raw session value (from a storage change event) the same way `readInputText` does. */
+export function parseInputText(value: unknown): string | null {
+  const parsed = inputTextSchema.safeParse(value);
   return parsed.success && parsed.data.text.trim() !== "" ? parsed.data.text : null;
 }

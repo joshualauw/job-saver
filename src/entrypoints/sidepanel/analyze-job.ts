@@ -2,11 +2,12 @@ import { appConfig } from "@/config/app";
 import { jobLlmSchema } from "@/config/fields";
 import type { AssessmentValues, JobFieldKey, LlmJobValues } from "@/config/fields";
 import { AppError, AuthError, InputError } from "@/core/errors";
-import type { AssessmentInput, Assessor, Extractor } from "@/core/types";
+import type { AnalyzeInput, AssessmentInput, Assessor, Extractor, Transcriber } from "@/core/types";
 import { createOpenAIAssessor } from "@/features/ai-assess/openai-assessor";
 import { buildJobDraft } from "@/features/ai-extract/draft";
 import { createOpenAIExtractor } from "@/features/ai-extract/openai-extractor";
-import { buildSelectionPayload } from "@/features/selection-capture/build-payload";
+import { createOpenAITranscriber } from "@/features/ai-transcribe/openai-transcriber";
+import { buildSelectionPayload } from "@/features/job-input/build-payload";
 import { readSettings } from "@/lib/storage";
 import type { Settings } from "@/lib/storage";
 
@@ -23,29 +24,33 @@ export interface AnalyzeDeps {
   readonly readSettings: () => Promise<Settings>;
   readonly createExtractor: (options: { apiKey: string; model: string }) => Extractor<LlmJobValues>;
   readonly createAssessor: (options: { apiKey: string; model: string }) => Assessor<AssessmentValues>;
+  readonly createTranscriber: (options: { apiKey: string; model: string }) => Transcriber;
 }
 
 const defaultDeps: AnalyzeDeps = {
   readSettings: () => readSettings(),
   createExtractor: ({ apiKey, model }) => createOpenAIExtractor({ apiKey, model, schema: jobLlmSchema }),
   createAssessor: ({ apiKey, model }) => createOpenAIAssessor({ apiKey, model }),
+  createTranscriber: ({ apiKey, model }) => createOpenAITranscriber({ apiKey, model }),
 };
 
 /**
- * Composition root for "Analyze": ask the model about the highlighted text and merge with what code
- * knows. It never touches the sheet, so it works before one is set up and every run is a fresh draft.
+ * Composition root for "Analyze": get the posting's text (read out of images or a PDF first, when that
+ * is what was given), ask the model about it and merge with what code knows. It never touches the
+ * sheet, so it works before one is set up and every run is a fresh draft.
  */
-export async function analyzeJob(selection: string, deps: AnalyzeDeps = defaultDeps): Promise<AnalyzeResult> {
+export async function analyzeJob(input: AnalyzeInput, deps: AnalyzeDeps = defaultDeps): Promise<AnalyzeResult> {
   const settings = await deps.readSettings();
   const apiKey = settings.openaiApiKey;
   if (!apiKey) throw new AuthError("Add your OpenAI API key first.");
 
-  const payload = buildSelectionPayload(selection, appConfig.maxPageTextChars);
-  if (payload.description === "") {
-    throw new InputError("Highlight a job posting, right-click and choose Send to Job Saver first.");
-  }
-
   const model = settings.openaiModel ?? appConfig.openaiModel;
+
+  const text = input.kind === "text" ? input.text : await readMedia(input, deps, { apiKey, model });
+  const payload = buildSelectionPayload(text, appConfig.maxPageTextChars);
+  if (payload.description === "") {
+    throw new InputError("There is no text to analyze yet. Add some text, an image or a file first.");
+  }
 
   // Started before extraction is awaited so the two requests overlap. It never rejects, so a
   // failing extraction cannot leave it as an unhandled rejection.
@@ -64,6 +69,15 @@ export async function analyzeJob(selection: string, deps: AnalyzeDeps = defaultD
     missing: draft.missing,
     assessmentError: assessment && !assessment.ok ? assessment.message : null,
   };
+}
+
+async function readMedia(
+  input: Extract<AnalyzeInput, { kind: "media" }>,
+  deps: AnalyzeDeps,
+  options: { apiKey: string; model: string },
+): Promise<string> {
+  if (input.items.length === 0) throw new InputError("Add an image or a file first.");
+  return deps.createTranscriber(options).transcribe(input.items);
 }
 
 type Assessed = { ok: true; values: AssessmentValues } | { ok: false; message: string };

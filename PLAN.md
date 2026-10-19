@@ -51,7 +51,7 @@ Decisions already made:
 
 ## Phase 3: Selection-only, remove page analysis
 
-- [~] Replace page reading with "get the current selection": built as a right-click "Send to Job Saver" item (chosen over the Analyze-button route; no host permissions).
+- [x] Replace page reading with "get the current selection": built as a right-click "Send to Job Saver" item (chosen over the Analyze-button route; no host permissions).
       Check that line breaks survive the capture; pick the method that keeps them.
 - [x] Delete platform config, host matching, URL cleaning, job-source resolution, DOM-text cleaning, JSON-LD,
       the page-extract internals and the platform fixtures and their tests.
@@ -63,13 +63,20 @@ Decisions already made:
 Ordering note: if you never want to be without a way to input text, build the Phase 4 text box before
 this phase.
 
-## Phase 4: One text input, plus paste, image and file
+## Phase 4: Text, Image and File input tabs
 
-- [ ] One editable input text box ("what the AI will see") with a character count; selection and paste fill it.
-- [ ] Image/PDF to text adapter using OpenAI image/file input; extend the structured request to accept
-      content parts; clear error when the chosen model cannot read images/files.
-- [ ] Plain text and markdown files; drag-drop and clipboard image paste.
-- [ ] Tests (OpenAI mocked) for the adapter and the text-to-payload builder.
+Design changed from the first draft: three tabs with icons (Text, Image, File), no "what the AI will see" box.
+Only the Text tab has a textarea (typed text and right-click text land there). Each tab keeps its progress while you
+switch; Analyze sends only the active tab. Images and PDFs go through a hidden transcribe step (one vision call to
+plain text) and then the same extractor and assessor as text. Icons are inline SVGs.
+
+- [x] Rename selection capture to job input (no behaviour change).
+- [x] Transcriber: core types, a plain-text OpenAI request helper, the transcribe adapter; clear error when the model
+      cannot read images/files.
+- [x] Analyze takes text or media input; media is transcribed first.
+- [x] Tabs UI: Text (textarea, count, clear), Image (up to 5, drop/paste/pick, thumbnails), File (one .txt/.md/.pdf).
+- [x] Tests (OpenAI mocked) for the transcriber, the analyze flow, attachment reading and the tab-to-input mapping.
+- [~] Checked in a browser with a stubbed chrome; real Chrome check (right-click fills the Text tab, image and PDF analysis with a real key) is still for the user.
 
 ## Phase 5: Docs and release
 
@@ -113,3 +120,10 @@ this phase.
   Left for later: the payload type keeps its old name for now (Phase 4's text-to-payload builder is the place to
   rename it); README, ARCHITECTURE.md and CLAUDE.md still describe page reading and platforms (Phase 5). With no
   text box yet, right-click is the only way to give the panel text until Phase 4.
+- Phase 4 built (typecheck, lint, tests pass). Three tabs (Text, Image, File) with inline SVG icons; each keeps its
+  content while you switch and Analyze sends only the active tab; after a save only that tab is cleared. Images and PDFs
+  are read by a hidden transcribe call (one vision request), then go through the same extractor and assessor as
+  text; text files are read locally. Limits: 5 images of 8 MB, one file of 10 MB. Images and the file live in memory,
+  so they are lost when the panel closes; the Text tab is kept in session storage. Checked in a browser with a stubbed
+  chrome (tabs, drops, errors, progress kept); the real vision call is covered by mocked tests only. The payload type
+  keeps its old name (it is only the posting text now).

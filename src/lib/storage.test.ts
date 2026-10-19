@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  clearCapturedSelection,
+  clearInputText,
   clearDraft,
-  parseCapturedSelection,
-  readCapturedSelection,
+  parseInputText,
+  readInputText,
   readDraft,
   readSettings,
-  writeCapturedSelection,
+  writeInputText,
   writeDraft,
   writeSettings,
 } from "./storage";
@@ -116,17 +116,17 @@ describe("draft storage", () => {
   });
 });
 
-describe("captured selection storage", () => {
+describe("input text storage", () => {
   it("reads null when nothing was sent", async () => {
-    expect(await readCapturedSelection(memoryAdapter().adapter)).toBeNull();
+    expect(await readInputText(memoryAdapter().adapter)).toBeNull();
   });
 
   it("round-trips the text and clears it", async () => {
     const { adapter } = memoryAdapter();
-    await writeCapturedSelection("Build things.\n\nWith care.", adapter);
-    expect(await readCapturedSelection(adapter)).toBe("Build things.\n\nWith care.");
-    await clearCapturedSelection(adapter);
-    expect(await readCapturedSelection(adapter)).toBeNull();
+    await writeInputText("Build things.\n\nWith care.", adapter);
+    expect(await readInputText(adapter)).toBe("Build things.\n\nWith care.");
+    await clearInputText(adapter);
+    expect(await readInputText(adapter)).toBeNull();
   });
 
   it.each([
@@ -135,7 +135,7 @@ describe("captured selection storage", () => {
     ["non-string text", { text: 1 }],
     ["nothing", undefined],
   ])("treats %s as no selection", (_label, stored) => {
-    expect(parseCapturedSelection(stored)).toBeNull();
+    expect(parseInputText(stored)).toBeNull();
   });
 });
 

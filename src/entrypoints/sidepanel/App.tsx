@@ -8,15 +8,14 @@ import { JobForm } from "@/features/job-form/JobForm";
 import { toFormInputs } from "@/features/job-form/form-values";
 import type { FormInputs } from "@/features/job-form/form-values";
 import { useDraft } from "@/features/job-form/use-draft";
-import { CapturedSelection } from "@/features/selection-capture/CapturedSelection";
-import { useCapturedSelection } from "@/features/selection-capture/use-captured-selection";
+import { JobInput } from "@/features/job-input/JobInput";
+import { useJobInput } from "@/features/job-input/use-job-input";
 import { SettingsView } from "@/features/settings/SettingsView";
 import { isSetupComplete } from "@/features/settings/setup-status";
 import { useSettings } from "@/features/settings/use-settings";
 
 import { toaster } from "@/theme/toast";
 
-import { analyzeLabel } from "./analyze-label";
 import { useAnalyzeJob } from "./use-analyze-job";
 import { useBackfillIds } from "./use-backfill-ids";
 import { useJobList } from "./use-job-list";
@@ -46,7 +45,7 @@ export function App() {
   const draft = useDraft();
   const connection = useVerifyConnection();
   const backfill = useBackfillIds();
-  const selection = useCapturedSelection();
+  const input = useJobInput();
   const [analysis, setAnalysis] = useState<Session | null>(null);
   // Null until the user picks a view, so the first run can open Settings by itself.
   const [chosenView, setChosenView] = useState<View | null>(null);
@@ -84,9 +83,9 @@ export function App() {
   );
 
   const runAnalysis = () => {
-    if (selection.text === null) return;
+    if (input.analyzeInput === null) return;
     save.reset();
-    analyze.mutate(selection.text, {
+    analyze.mutate(input.analyzeInput, {
       onSuccess: (result) => {
         const next: Session = {
           id: Date.now(),
@@ -112,7 +111,7 @@ export function App() {
       // Done: clear the form so the next Analyze starts fresh.
       onSuccess: (result) => {
         draft.discard();
-        selection.clear();
+        input.clearActive();
         setAnalysis(null);
         toaster.create({
           type: "success",
@@ -133,7 +132,7 @@ export function App() {
             <Heading size="md">Job Saver</Heading>
             {view === "job" && (
               <Text mt="1" color="fg.muted">
-                Send a job posting to the panel, then analyze it.
+                Add a job posting as text, an image or a file, then analyze it.
               </Text>
             )}
           </Box>
@@ -171,16 +170,7 @@ export function App() {
               </Alert.Root>
             )}
 
-            <CapturedSelection text={selection.text} onClear={selection.clear} />
-
-            <Button
-              onClick={runAnalysis}
-              loading={analyze.isPending}
-              loadingText="Asking AI"
-              disabled={!hasKey || selection.text === null}
-            >
-              {analyzeLabel(selection.text)}
-            </Button>
+            <JobInput input={input} onAnalyze={runAnalysis} analyzing={analyze.isPending} blocked={!hasKey} />
 
             {analyze.isError && (
               <Alert.Root status="error">
