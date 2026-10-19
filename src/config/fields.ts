@@ -173,6 +173,16 @@ export const fields = [
     source: "assessment",
     nullable: true,
   },
+  {
+    // Row identity in the sheet. Minted by code when a draft is created; the user never sees it.
+    key: "jobId",
+    column: "Job ID",
+    label: "Job ID",
+    type: "string",
+    source: "derived",
+    required: true,
+    hidden: true,
+  },
 ] as const satisfies readonly FieldDef[];
 
 export type JobFieldKey = (typeof fields)[number]["key"];

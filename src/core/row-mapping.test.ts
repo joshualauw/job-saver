@@ -26,6 +26,7 @@ const values = {
   summary: "Builds APIs.",
   notes: "BPJS; 9-5 working hours",
   preferenceFit: "Yes: Remote work\nNo: Salary above 10M",
+  jobId: "abcdefghijkl",
 };
 
 describe("asText", () => {
@@ -57,6 +58,7 @@ describe("toSheetRow", () => {
       "'Builds APIs.",
       "'BPJS; 9-5 working hours",
       "'Yes: Remote work\nNo: Salary above 10M",
+      "'abcdefghijkl",
     ]);
   });
 

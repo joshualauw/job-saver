@@ -61,8 +61,6 @@ export const draftSchema = z.object({
   inputs: z.record(z.string(), z.string()),
   /** Keys of fields the AI could not find, for "not found" flags. */
   missing: z.array(z.string()),
-  /** The values were loaded from a row already in the sheet. */
-  existing: z.boolean().optional(),
 });
 
 export type StoredDraft = z.infer<typeof draftSchema>;

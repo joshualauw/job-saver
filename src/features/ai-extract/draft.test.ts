@@ -145,69 +145,18 @@ describe("buildJobDraft details", () => {
     expect(values.preferenceFit).toBeNull();
   });
 
-  describe("refreshing a saved row", () => {
-    const saved = {
-      company: "Old Co",
-      jobTitle: "Old title",
-      address: "Bali",
-      skills: ["php"],
-      summary: "Old summary.",
-      platform: "Jobstreet",
-      jobUrl: source.jobUrl,
-    };
+  it("mints a job ID in code and ignores one the model tries to supply", () => {
+    const hostile = { ...answerFor("1"), jobId: "from-the-model" } as unknown as LlmJobValues;
+    const { values, missing } = buildJobDraft({ source, llm: hostile, newId: () => "fresh0000001" });
+    expect(values.jobId).toBe("fresh0000001");
+    expect(missing).not.toContain("jobId");
+  });
 
-    it("takes new values for AI fields", () => {
-      const { values } = buildJobDraft({ source, llm: answerFor("1"), saved });
-      expect(values.company).toBe(answerFor("1").company);
-      expect(values.summary).toBe(answerFor("1").summary);
-    });
-
-    it("keeps a saved value when the model found nothing for it", () => {
-      const llm = { ...answerFor("3"), address: null, skills: [], summary: "  " };
-      const { values, missing } = buildJobDraft({ source, llm, saved });
-      expect(values.skills).toEqual(["php"]);
-      expect(values.summary).toBe("Old summary.");
-      expect(missing).not.toContain("summary");
-    });
-
-    it("keeps a saved assessment, which extraction never produces", () => {
-      const { values } = buildJobDraft({
-        source,
-        llm: answerFor("1"),
-        saved: { ...saved, preferenceFit: "Yes: Remote work" },
-      });
-      expect(values.preferenceFit).toBe("Yes: Remote work");
-    });
-
-    it("still flags AI fields that are blank in both", () => {
-      const { values, missing } = buildJobDraft({
-        source,
-        llm: { ...answerFor("3"), notes: null },
-        saved,
-      });
-      expect(values.notes).toBeNull();
-      expect(missing).toContain("notes");
-    });
-
-    it("ignores code-owned values from the model and takes platform and URL from the source", () => {
-      const hostile = {
-        ...answerFor("1"),
-        preferenceFit: "Yes: Injected",
-        jobUrl: "https://evil.example",
-      } as unknown as LlmJobValues;
-      const { values } = buildJobDraft({ source, llm: hostile, saved });
-      expect(values.jobUrl).toBe(source.jobUrl);
-      expect(values.preferenceFit).toBeNull();
-    });
-
-    it("takes the model's values when the saved row has almost nothing", () => {
-      const { values } = buildJobDraft({
-        source,
-        llm: answerFor("1"),
-        saved: { jobUrl: source.jobUrl },
-      });
-      expect(values.skills).toEqual(["ai coding agents", "claude code"]);
-    });
+  it("gives every draft its own job ID by default", () => {
+    const first = buildJobDraft({ source, llm: answerFor("1") }).values.jobId;
+    const second = buildJobDraft({ source, llm: answerFor("1") }).values.jobId;
+    expect(first).toMatch(/^[a-z0-9]{12}$/);
+    expect(second).not.toBe(first);
   });
 
   it("leaves platform and jobUrl empty (and flagged) when the URL is unusable", () => {

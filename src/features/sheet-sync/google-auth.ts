@@ -15,7 +15,7 @@ function reasonOf(cause: unknown): string {
 
 /**
  * Chrome-account OAuth via `chrome.identity`. Interactive on purpose: it is only reached from a
- * user action (Analyze / Save), and the consent prompt explains itself. Every failure (cancelled
+ * user action (a form on screen, Save, the Settings buttons), and the consent prompt explains itself. Every failure (cancelled
  * consent, not signed in to Chrome, OAuth client misconfigured) becomes one `AuthError` that
  * carries Chrome's reason, because the cause decides the fix.
  */

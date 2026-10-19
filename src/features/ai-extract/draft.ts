@@ -1,5 +1,6 @@
 import { fields } from "@/config/fields";
 import type { JobFieldKey, JobValues, LlmJobValues } from "@/config/fields";
+import { newJobId } from "@/core/job-id";
 import { normalizeList } from "@/core/normalize";
 import type { JobSource } from "@/core/types";
 
@@ -15,11 +16,8 @@ export interface BuildDraftInput {
   /** Derived from the page URL; `null` when the URL is not usable. */
   readonly source: JobSource | null;
   readonly llm: LlmJobValues;
-  /**
-   * Values of the row already in the sheet, when refreshing it. They are the base: the model only
-   * replaces AI-sourced fields it actually found a value for, so nothing is blanked.
-   */
-  readonly saved?: Readonly<Record<string, unknown>>;
+  /** Injectable for tests; defaults to a random ID. */
+  readonly newId?: () => string;
 }
 
 export interface BuildDraftResult {
@@ -30,6 +28,7 @@ export interface BuildDraftResult {
 
 const PLATFORM_KEY = "platform" satisfies JobFieldKey;
 const JOB_URL_KEY = "jobUrl" satisfies JobFieldKey;
+const JOB_ID_KEY = "jobId" satisfies JobFieldKey;
 const SKILLS_KEY = "skills" satisfies JobFieldKey;
 
 function isBlank(value: unknown): boolean {
@@ -39,21 +38,19 @@ function isBlank(value: unknown): boolean {
 const AI_KEYS: ReadonlySet<string> = new Set(fields.filter((field) => field.source === "ai").map((field) => field.key));
 
 /**
- * Merges what code knows (platform, clean URL) with what the model returned.
+ * Merges what code knows (a fresh job ID, platform, clean URL) with what the model returned.
  * Code-owned fields always win, and the model never sets them.
  */
-export function buildJobDraft({ source, llm, saved }: BuildDraftInput): BuildDraftResult {
-  const merged: Record<string, unknown> = { ...saved };
+export function buildJobDraft({ source, llm, newId = newJobId }: BuildDraftInput): BuildDraftResult {
+  const merged: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries({ ...llm, [SKILLS_KEY]: normalizeList(llm.skills) })) {
-    if (!AI_KEYS.has(key)) continue;
-    const empty = isBlank(value) || (Array.isArray(value) && value.length === 0);
-    if (!saved || !empty) merged[key] = value;
+    if (AI_KEYS.has(key)) merged[key] = value;
   }
 
+  merged[JOB_ID_KEY] = newId();
   merged[PLATFORM_KEY] = source?.platform ?? null;
   merged[JOB_URL_KEY] = source?.jobUrl ?? null;
-  if (saved && !Array.isArray(merged[SKILLS_KEY])) merged[SKILLS_KEY] = [];
 
   const missing: JobFieldKey[] = [];
   for (const field of fields) {

@@ -1,8 +1,9 @@
 import { Alert, Box, Button, Collapsible, Heading, HStack, Skeleton, Stack, Text } from "@chakra-ui/react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { platforms } from "@/config/platforms";
 import { AppError, PageAccessError } from "@/core/errors";
+import { newJobId } from "@/core/job-id";
 import { isSameJobPage } from "@/core/page-match";
 import type { PagePayload } from "@/core/page-payload";
 import { AssessmentCard } from "@/features/ai-assess/AssessmentCard";
@@ -22,6 +23,8 @@ import { toaster } from "@/theme/toast";
 import { analyzeLabel } from "./analyze-label";
 import { useActiveTabUrl } from "./use-active-tab-url";
 import { useAnalyzeJob } from "./use-analyze-job";
+import { useBackfillIds } from "./use-backfill-ids";
+import { useJobList } from "./use-job-list";
 import { useSaveJob } from "./use-save-job";
 import { useSelectionLength } from "./use-selection-length";
 import { useVerifyConnection } from "./use-verify-connection";
@@ -33,8 +36,6 @@ interface Session {
   readonly url: string;
   readonly inputs: FormInputs;
   readonly missing: readonly string[];
-  /** The values came from a row already in the sheet. */
-  readonly existing: boolean;
   /** Why the assessment is missing after an attempt; only present for an analysis made in this panel session. */
   readonly assessmentError: string | null;
   /** Only present for an analysis made in this panel session. */
@@ -53,6 +54,7 @@ export function App() {
   const save = useSaveJob();
   const draft = useDraft();
   const connection = useVerifyConnection();
+  const backfill = useBackfillIds();
   const activeUrl = useActiveTabUrl();
   const [analysis, setAnalysis] = useState<Session | null>(null);
   // Null until the user picks a view, so the first run can open Settings by itself.
@@ -65,57 +67,55 @@ export function App() {
   const view: View = chosenView ?? (firstRun ? "settings" : "job");
   const selectionLength = useSelectionLength(view === "job" && !analyze.isPending);
 
-  const restored: Session | null = draft.restored
-    ? {
-        id: 0,
-        url: draft.restored.url,
-        inputs: draft.restored.inputs,
-        missing: draft.restored.missing,
-        existing: draft.restored.existing ?? false,
-        payload: null,
-        assessmentError: null,
-      }
-    : null;
+  const restored = useMemo<Session | null>(
+    () =>
+      draft.restored
+        ? {
+            id: 0,
+            url: draft.restored.url,
+            // A draft saved before job IDs existed has none; the form needs one to save.
+            inputs: { ...draft.restored.inputs, jobId: draft.restored.inputs["jobId"] || newJobId() },
+            missing: draft.restored.missing,
+            payload: null,
+            assessmentError: null,
+          }
+        : null,
+    [draft.restored],
+  );
   const session = analysis ?? restored;
   // Unknown until the first tab answer arrives, so no notice flashes on open.
   const isStale = session !== null && activeUrl !== undefined && !isSameJobPage(session.url, activeUrl, platforms);
-  // The form shows a saved row of the page the user is on: Analyze then asks the model again
-  // instead of returning the row, and Save replaces that row.
-  const replacing = session !== null && session.existing && !isStale;
+  // Fetched once a form is on screen, so Google's sign-in prompt (first use only) follows a user action.
+  const jobList = useJobList(settings, session !== null);
 
   const { persist } = draft;
   const sessionUrl = session?.url;
   const sessionMissing = session?.missing;
-  const sessionExisting = session?.existing;
   const handleChange = useCallback(
     (inputs: FormInputs) => {
       if (sessionUrl !== undefined && sessionMissing !== undefined) {
-        persist({ url: sessionUrl, inputs, missing: [...sessionMissing], existing: sessionExisting });
+        persist({ url: sessionUrl, inputs, missing: [...sessionMissing] });
       }
     },
-    [persist, sessionUrl, sessionMissing, sessionExisting],
+    [persist, sessionUrl, sessionMissing],
   );
 
-  const runAnalysis = (refresh: boolean) => {
+  const runAnalysis = () => {
     save.reset();
-    analyze.mutate(
-      { refresh },
-      {
-        onSuccess: (result) => {
-          const next: Session = {
-            id: Date.now(),
-            url: result.payload.url,
-            inputs: toFormInputs(result.values),
-            missing: result.missing,
-            existing: result.existing,
-            payload: result.payload,
-            assessmentError: result.assessmentError,
-          };
-          draft.saveNow({ url: next.url, inputs: next.inputs, missing: [...next.missing], existing: next.existing });
-          setAnalysis(next);
-        },
+    analyze.mutate(undefined, {
+      onSuccess: (result) => {
+        const next: Session = {
+          id: Date.now(),
+          url: result.payload.url,
+          inputs: toFormInputs(result.values),
+          missing: result.missing,
+          payload: result.payload,
+          assessmentError: result.assessmentError,
+        };
+        draft.saveNow({ url: next.url, inputs: next.inputs, missing: [...next.missing] });
+        setAnalysis(next);
       },
-    );
+    });
   };
 
   // The tab's site, when Analyze failed only because the extension may not read it yet.
@@ -126,7 +126,7 @@ export function App() {
     if (!accessPattern) return;
     // Chrome only shows the prompt for a call made directly from the click, so nothing is awaited first.
     void requestSiteAccess(accessPattern).then((granted) => {
-      if (granted) runAnalysis(false);
+      if (granted) runAnalysis();
     });
   };
 
@@ -179,6 +179,8 @@ export function App() {
             onDone={() => setChosenView("job")}
             connection={connection.state}
             onTestConnection={connection.run}
+            backfill={backfill.state}
+            onBackfillIds={backfill.run}
           />
         )}
 
@@ -199,12 +201,12 @@ export function App() {
             )}
 
             <Button
-              onClick={() => runAnalysis(replacing)}
+              onClick={runAnalysis}
               loading={analyze.isPending}
               loadingText="Reading page and asking AI"
               disabled={!hasKey}
             >
-              {analyzeLabel(selectionLength, replacing)}
+              {analyzeLabel(selectionLength)}
             </Button>
 
             {analyze.isError && (
@@ -248,25 +250,13 @@ export function App() {
                   </Alert.Root>
                 )}
 
-                {session.existing && (
-                  <Alert.Root status="info">
-                    <Alert.Indicator />
-                    <Alert.Content>
-                      <Alert.Title>Already in your sheet</Alert.Title>
-                      <Alert.Description>
-                        Showing the saved row. Saving updates it instead of adding a new one.
-                      </Alert.Description>
-                    </Alert.Content>
-                  </Alert.Root>
-                )}
-
                 {session.assessmentError && (
                   <Alert.Root status="warning">
                     <Alert.Indicator />
                     <Alert.Content>
                       <Alert.Title>Couldn't judge this job</Alert.Title>
                       <Alert.Description>
-                        {session.assessmentError} {session.existing ? "Use Re-analyze" : "Analyze again"} to retry.
+                        {session.assessmentError} Analyze again to retry.
                       </Alert.Description>
                     </Alert.Content>
                   </Alert.Root>
@@ -280,7 +270,7 @@ export function App() {
                   onSave={saveJob}
                   onDiscard={discard}
                   saving={save.isPending}
-                  saveLabel={session.existing ? "Save & Update" : "Save"}
+                  jobList={jobList}
                   assessment={<AssessmentCard inputs={session.inputs} />}
                   saveDisabledReason={hasSheet ? null : "Add your Google spreadsheet in Settings to save."}
                 />

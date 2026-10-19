@@ -10,7 +10,8 @@ import type { SheetsClient } from "./sheets-client";
 import { createSheetsSink } from "./sheets-sink";
 
 const URL_A = "https://id.jobstreet.com/id/job/1";
-const URL_B = "https://id.jobstreet.com/id/job/2";
+const ID_A = "aaaaaaaaaaaa";
+const ID_B = "bbbbbbbbbbbb";
 
 // The sheet has every configured column plus one the user added themselves.
 const header = [...fields.map((field) => field.column), "My Comments"];
@@ -25,6 +26,7 @@ function values(overrides: Record<string, unknown> = {}): Record<string, unknown
     locationType: "onsite",
     platform: "Jobstreet",
     jobUrl: URL_A,
+    jobId: ID_A,
     minYoe: null,
     skills: ["node.js"],
     salaryPeriod: "hour",
@@ -47,31 +49,73 @@ function fakeClient(tabValues: unknown[][] | undefined, appendResponse: unknown 
   const get = vi.fn().mockResolvedValue({ values: tabValues });
   const post = vi.fn().mockResolvedValue(appendResponse);
   const client = { get, post } as unknown as SheetsClient;
-  return { sink: createSheetsSink({ tab: "Jobs", client }), get, post };
+  let next = 0;
+  const newId = () => `generated${String(++next).padStart(3, "0")}`;
+  return { sink: createSheetsSink({ tab: "Jobs", client, newId }), get, post };
 }
 
-describe("sheets sink: find", () => {
-  it("reads the whole tab unformatted and returns the matching row with its decoded values", async () => {
-    const { sink, get } = fakeClient([header, rowFor({ jobUrl: URL_B }), rowFor({ contractType: "contract" })]);
+describe("sheets sink: list", () => {
+  it("reads the whole tab unformatted and lists the jobs that have an ID, in sheet order", async () => {
+    const { sink, get } = fakeClient([
+      header,
+      rowFor({ jobId: ID_B, company: "Acme", jobTitle: "Engineer", platform: "LinkedIn" }),
+      rowFor({ jobId: "" }),
+      rowFor({ jobId: ID_A, platform: null }),
+    ]);
 
-    const found = await sink.find(URL_A);
+    const jobs = await sink.list();
 
     expect(get.mock.calls[0]?.[0]).toBe(
       `values/${encodeURIComponent("'Jobs'")}?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=SERIAL_NUMBER`,
     );
-    expect(found?.row).toBe(3);
-    expect(found?.values["contractType"]).toBe("contract");
-    expect(found?.values["skills"]).toEqual(["node.js"]);
+    expect(jobs).toEqual([
+      { id: ID_B, company: "Acme", jobTitle: "Engineer", platform: "LinkedIn", row: 2 },
+      { id: ID_A, company: "Ryvo", jobTitle: "Senior Full-Stack Developer", platform: null, row: 4 },
+    ]);
   });
 
-  it("returns null when the URL is not in the sheet or the tab is empty", async () => {
-    expect(await fakeClient([header, rowFor({ jobUrl: URL_B })]).sink.find(URL_A)).toBeNull();
-    expect(await fakeClient([header]).sink.find(URL_A)).toBeNull();
+  it("returns nothing for a tab with only a header", async () => {
+    expect(await fakeClient([header]).sink.list()).toEqual([]);
   });
 
   it("explains missing header columns", async () => {
-    const short = header.filter((name) => name !== "Notes");
-    await expect(fakeClient([short, rowFor()]).sink.find(URL_A)).rejects.toBeInstanceOf(MissingColumnsError);
+    const short = header.filter((name) => name !== "Job ID");
+    await expect(fakeClient([short, rowFor()]).sink.list()).rejects.toBeInstanceOf(MissingColumnsError);
+  });
+});
+
+describe("sheets sink: backfill IDs", () => {
+  it("writes an ID into the Job ID cell of every job row that has none, and nothing else", async () => {
+    const { sink, post } = fakeClient([
+      header,
+      rowFor({ jobId: ID_A }),
+      rowFor({ jobId: "" }),
+      header.map(() => ""),
+      rowFor({ jobId: "" }),
+    ]);
+
+    await expect(sink.backfillIds()).resolves.toEqual({ filled: 2 });
+
+    const [path, body] = post.mock.calls[0] as [string, BatchBody];
+    expect(path).toBe("values:batchUpdate");
+    const idColumn = columnLetter(col("Job ID"));
+    expect(body.data).toEqual([
+      { range: `'Jobs'!${idColumn}3`, values: [["'generated001"]] },
+      { range: `'Jobs'!${idColumn}5`, values: [["'generated002"]] },
+    ]);
+  });
+
+  it("leaves rows that only hold the user's own columns alone", async () => {
+    const userOnly = header.map((name) => (name === "My Comments" ? "note" : ""));
+    const { sink, post } = fakeClient([header, userOnly]);
+    await expect(sink.backfillIds()).resolves.toEqual({ filled: 0 });
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("does not write when every job already has an ID", async () => {
+    const { sink, post } = fakeClient([header, rowFor()]);
+    await expect(sink.backfillIds()).resolves.toEqual({ filled: 0 });
+    expect(post).not.toHaveBeenCalled();
   });
 });
 
@@ -83,7 +127,7 @@ function cellWritten(body: BatchBody, column: string, row: number): unknown {
 
 describe("sheets sink: save a new job", () => {
   it("writes into the row after the last job, so that row keeps its prepared formatting", async () => {
-    const { sink, post } = fakeClient([header, rowFor({ jobUrl: URL_B })]);
+    const { sink, post } = fakeClient([header, rowFor({ jobId: ID_B })]);
 
     const result = await sink.save(values());
 
@@ -112,7 +156,7 @@ describe("sheets sink: save a new job", () => {
 
   it("reuses a gap left by a deleted job instead of going to the end", async () => {
     const blank: unknown[] = [];
-    const { sink } = fakeClient([header, rowFor({ jobUrl: URL_B }), blank, rowFor({ jobUrl: "https://x/3" })]);
+    const { sink } = fakeClient([header, rowFor({ jobId: ID_B }), blank, rowFor({ jobId: "cccccccccccc" })]);
     expect((await sink.save(values())).row).toBe(3);
   });
 
@@ -153,8 +197,13 @@ describe("sheets sink: save a new job", () => {
 });
 
 describe("sheets sink: save over an existing job", () => {
+  it("finds the job by its ID even when its URL differs, so a job can change source", async () => {
+    const { sink } = fakeClient([header, rowFor({ jobId: ID_B }), rowFor({ jobUrl: "https://other.example/job" })]);
+    expect(await sink.save(values({ jobUrl: null }))).toEqual({ action: "updated", row: 3 });
+  });
+
   it("updates only the cells the app owns, so user columns are untouched", async () => {
-    const { sink, post } = fakeClient([header, rowFor({ jobUrl: URL_B }), rowFor({ contractType: "contract" })]);
+    const { sink, post } = fakeClient([header, rowFor({ jobId: ID_B }), rowFor({ contractType: "contract" })]);
 
     const result = await sink.save(values({ contractType: "part_time" }));
 
@@ -174,9 +223,9 @@ describe("sheets sink: save over an existing job", () => {
 });
 
 describe("sheets sink: validation", () => {
-  it("requires a job URL to save", async () => {
+  it("requires a job ID to save", async () => {
     const { sink, post } = fakeClient([header]);
-    await expect(sink.save(values({ jobUrl: "" }))).rejects.toBeInstanceOf(SchemaError);
+    await expect(sink.save(values({ jobId: "" }))).rejects.toBeInstanceOf(SchemaError);
     expect(post).not.toHaveBeenCalled();
   });
 

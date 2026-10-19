@@ -23,6 +23,7 @@ const validJob: JobValues = {
   summary: "Builds APIs.",
   notes: null,
   preferenceFit: null,
+  jobId: "abcdefghijkl",
 };
 
 describe("buildFormSchema", () => {
@@ -33,6 +34,7 @@ describe("buildFormSchema", () => {
   it("rejects blank required fields", () => {
     expect(jobFormSchema.safeParse({ ...validJob, company: "   " }).success).toBe(false);
     expect(jobFormSchema.safeParse({ ...validJob, jobUrl: "" }).success).toBe(false);
+    expect(jobFormSchema.safeParse({ ...validJob, jobId: "" }).success).toBe(false);
   });
 
   it("allows null only on nullable fields", () => {

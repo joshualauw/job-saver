@@ -6,11 +6,11 @@ import { UnexpectedError } from "@/core/errors";
 import { saveJob } from "./save-job";
 import type { SaveDeps } from "./save-job";
 
-const values = { company: "Ryvo", jobUrl: "https://id.jobstreet.com/id/job/1" };
+const values = { company: "Ryvo", jobId: "abcdefghijkl", jobUrl: "https://id.jobstreet.com/id/job/1" };
 
 function deps(overrides: Partial<SaveDeps> = {}) {
   const save = vi.fn().mockResolvedValue({ action: "created", row: 4 });
-  const createSink = vi.fn().mockReturnValue({ find: vi.fn(), save });
+  const createSink = vi.fn().mockReturnValue({ save });
   const all: SaveDeps = {
     readSettings: () => Promise.resolve({ spreadsheetId: "sheet-id" }),
     createSink,

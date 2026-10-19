@@ -4,8 +4,11 @@ import type { ReactNode } from "react";
 import { useForm, useWatch } from "react-hook-form";
 
 import type { JobValues } from "@/config/fields";
+import { newJobId } from "@/core/job-id";
 
 import { FieldInput } from "./FieldInput";
+import { SaveToPicker } from "./SaveToPicker";
+import type { JobListState } from "./SaveToPicker";
 import { jobFormResolver, validateInputs } from "./validate";
 import { formFields } from "./form-values";
 import type { FormInputs } from "./form-values";
@@ -22,8 +25,8 @@ interface Props {
   saving: boolean;
   /** Why saving is unavailable right now, if it is. */
   saveDisabledReason: string | null;
-  /** Text of the submit button. */
-  saveLabel?: string;
+  /** The sheet's saved jobs for Save To; absent when no sheet is set up, which hides the picker. */
+  jobList?: JobListState | null;
   /** Shown under the fields, above the Save buttons. Supplied by the panel so features stay separate. */
   assessment?: ReactNode;
 }
@@ -36,7 +39,7 @@ export function JobForm({
   onDiscard,
   saving,
   saveDisabledReason,
-  saveLabel = "Save",
+  jobList,
   assessment,
 }: Props) {
   const form = useForm<FormInputs>({ defaultValues: initialInputs, resolver: jobFormResolver, mode: "onBlur" });
@@ -50,6 +53,11 @@ export function JobForm({
 
   const current = useWatch({ control: form.control });
   const { errors } = form.formState;
+
+  // The form's job ID belongs to a saved job exactly when Save To picked it (a new draft's ID is not in the sheet).
+  const target = jobList?.jobs.find((job) => job.id === current["jobId"]) ?? null;
+  // The ID is code-owned and hidden, so retargeting swaps it: Save then updates that job's row.
+  const pickTarget = (jobId: string | null) => form.setValue("jobId", jobId ?? newJobId(), { shouldDirty: true });
   const errorCount = Object.keys(errors).length;
 
   const submit = form.handleSubmit((data) => {
@@ -73,6 +81,8 @@ export function JobForm({
 
         {assessment}
 
+        {jobList && <SaveToPicker list={jobList} target={target} onPick={pickTarget} />}
+
         {errorCount > 0 && (
           <Alert.Root status="warning">
             <Alert.Indicator />
@@ -92,7 +102,7 @@ export function JobForm({
 
         <HStack>
           <Button type="submit" flex="1" loading={saving} disabled={saveDisabledReason !== null}>
-            {saveLabel}
+            {target ? "Update job" : "Save"}
           </Button>
           <Button type="button" variant="outline" onClick={onDiscard} disabled={saving}>
             Discard

@@ -4,7 +4,6 @@ import { appConfig } from "@/config/app";
 import type { AssessmentValues, LlmJobValues } from "@/config/fields";
 import { AuthError, NetworkError, PageAccessError, RateLimitError } from "@/core/errors";
 import type { PagePayload } from "@/core/page-payload";
-import type { SavedJob } from "@/core/types";
 
 import { analyzeJob } from "./analyze-job";
 import type { AnalyzeDeps } from "./analyze-job";
@@ -36,11 +35,6 @@ const answer: LlmJobValues = {
   notes: "BPJS",
 };
 
-const saved: SavedJob = {
-  row: 7,
-  values: { company: "Ryvo", jobUrl: CLEAN_URL, summary: "Old summary.", skills: ["node.js"] },
-};
-
 const assessment: AssessmentValues = {
   preferenceFit: "Yes: Remote work",
 };
@@ -51,47 +45,59 @@ function deps(overrides: Partial<AnalyzeDeps> = {}) {
   const extract = vi.fn().mockResolvedValue(answer);
   const createExtractor = vi.fn().mockReturnValue({ extract });
   const extractPage = vi.fn().mockResolvedValue(payload);
-  const find = vi.fn().mockResolvedValue(null);
-  const createSink = vi.fn().mockReturnValue({ find, save: vi.fn() });
   const all: AnalyzeDeps = {
     readSettings: () => Promise.resolve({ openaiApiKey: "sk-test" }),
     extractPage,
     createExtractor,
     createAssessor,
-    createSink,
     ...overrides,
   };
-  return { all, extract, createExtractor, createAssessor, assess, extractPage, find, createSink };
+  return { all, extract, createExtractor, createAssessor, assess, extractPage };
 }
-
-const withSheet = () => Promise.resolve({ openaiApiKey: "sk-test", spreadsheetId: "sheet-id" });
 
 describe("analyzeJob", () => {
   it("fails with AuthError before touching the page when no key is saved", async () => {
     const { all, extractPage } = deps({ readSettings: () => Promise.resolve({}) });
-    await expect(analyzeJob({}, all)).rejects.toBeInstanceOf(AuthError);
+    await expect(analyzeJob(all)).rejects.toBeInstanceOf(AuthError);
     expect(extractPage).not.toHaveBeenCalled();
   });
 
   it("reads the page, asks the model, and merges code-owned fields", async () => {
     const { all, extract, createExtractor } = deps();
-    const result = await analyzeJob({}, all);
+    const result = await analyzeJob(all);
 
     expect(extract).toHaveBeenCalledWith(payload);
     expect(createExtractor).toHaveBeenCalledWith({ apiKey: "sk-test", model: appConfig.openaiModel });
     expect(result.payload).toBe(payload);
-    expect(result.existing).toBe(false);
     expect(result.values.platform).toBe("Jobstreet");
     expect(result.values.jobUrl).toBe(CLEAN_URL);
     expect(result.values.skills).toEqual(["node.js"]);
     expect(result.missing).toContain("address");
   });
 
+  it("gives every analysis a new job ID, even for the same page", async () => {
+    const { all } = deps();
+    const first = await analyzeJob(all);
+    const second = await analyzeJob(all);
+
+    expect(first.values.jobId).toMatch(/^[a-z0-9]{12}$/);
+    expect(second.values.jobId).not.toBe(first.values.jobId);
+  });
+
+  it("runs without a spreadsheet and never asks the model again for a page it has seen", async () => {
+    const { all, extract } = deps({
+      readSettings: () => Promise.resolve({ openaiApiKey: "sk-test", spreadsheetId: "sheet-id" }),
+    });
+    await analyzeJob(all);
+    await analyzeJob(all);
+    expect(extract).toHaveBeenCalledTimes(2);
+  });
+
   it("prefers the model saved in settings over the config default", async () => {
     const { all, createExtractor } = deps({
       readSettings: () => Promise.resolve({ openaiApiKey: "sk-test", openaiModel: "my-model" }),
     });
-    await analyzeJob({}, all);
+    await analyzeJob(all);
     expect(createExtractor).toHaveBeenCalledWith({ apiKey: "sk-test", model: "my-model" });
   });
 
@@ -99,87 +105,17 @@ describe("analyzeJob", () => {
     const { all, createExtractor } = deps({
       extractPage: () => Promise.reject(new PageAccessError("no access")),
     });
-    await expect(analyzeJob({}, all)).rejects.toBeInstanceOf(PageAccessError);
-    expect(createExtractor).not.toHaveBeenCalled();
-  });
-});
-
-describe("analyzeJob with a spreadsheet", () => {
-  it("skips the sheet lookup when no spreadsheet is configured", async () => {
-    const { all, createSink } = deps();
-    await analyzeJob({}, all);
-    expect(createSink).not.toHaveBeenCalled();
-  });
-
-  it("looks up the clean job URL and still asks the model when it is not saved yet", async () => {
-    const { all, find, createSink, extract } = deps({ readSettings: withSheet });
-    const result = await analyzeJob({}, all);
-
-    expect(createSink).toHaveBeenCalledWith("sheet-id", appConfig.defaultSheetTab);
-    expect(find).toHaveBeenCalledWith(CLEAN_URL);
-    expect(extract).toHaveBeenCalledOnce();
-    expect(result.existing).toBe(false);
-  });
-
-  it("uses the tab name saved in settings", async () => {
-    const { all, createSink } = deps({
-      readSettings: () =>
-        Promise.resolve({ openaiApiKey: "sk-test", spreadsheetId: "sheet-id", sheetTab: "Applications" }),
-    });
-    await analyzeJob({}, all);
-    expect(createSink).toHaveBeenCalledWith("sheet-id", "Applications");
-  });
-
-  it("loads the saved row and skips OpenAI when the job is already in the sheet", async () => {
-    const { all, find, createExtractor } = deps({ readSettings: withSheet });
-    find.mockResolvedValue(saved);
-
-    const result = await analyzeJob({}, all);
-
-    expect(createExtractor).not.toHaveBeenCalled();
-    expect(result.existing).toBe(true);
-    expect(result.values).toBe(saved.values);
-    expect(result.missing).toEqual([]);
-  });
-
-  it("with refresh, asks the model and stays an update", async () => {
-    const { all, find, extract } = deps({ readSettings: withSheet });
-    find.mockResolvedValue(saved);
-
-    const result = await analyzeJob({ refresh: true }, all);
-
-    expect(extract).toHaveBeenCalledOnce();
-    expect(result.existing).toBe(true);
-    expect(result.values.summary).toBe("Builds software.");
-    expect(result.values.jobUrl).toBe(CLEAN_URL);
-  });
-
-  it("with refresh, behaves like a fresh analysis when the job is not saved", async () => {
-    const { all, extract } = deps({ readSettings: withSheet });
-
-    const result = await analyzeJob({ refresh: true }, all);
-
-    expect(extract).toHaveBeenCalledOnce();
-    expect(result.existing).toBe(false);
-  });
-
-  it("surfaces a lookup failure instead of silently calling the model", async () => {
-    const { all, find, createExtractor } = deps({ readSettings: withSheet });
-    find.mockRejectedValue(new NetworkError("offline"));
-
-    await expect(analyzeJob({}, all)).rejects.toBeInstanceOf(NetworkError);
+    await expect(analyzeJob(all)).rejects.toBeInstanceOf(PageAccessError);
     expect(createExtractor).not.toHaveBeenCalled();
   });
 });
 
 const withPreferences = () => Promise.resolve({ openaiApiKey: "sk-test", preferences: ["Remote work"] });
-const withPreferencesAndSheet = () =>
-  Promise.resolve({ openaiApiKey: "sk-test", spreadsheetId: "sheet-id", preferences: ["Remote work"] });
 
 describe("analyzeJob with the assessor", () => {
   it("does not assess when no preferences are set", async () => {
     const { all, createAssessor } = deps();
-    const result = await analyzeJob({}, all);
+    const result = await analyzeJob(all);
 
     expect(createAssessor).not.toHaveBeenCalled();
     expect(result.values.preferenceFit).toBeNull();
@@ -188,7 +124,7 @@ describe("analyzeJob with the assessor", () => {
 
   it("assesses with preferences and merges the result into the values", async () => {
     const { all, assess, createAssessor } = deps({ readSettings: withPreferences });
-    const result = await analyzeJob({}, all);
+    const result = await analyzeJob(all);
 
     expect(createAssessor).toHaveBeenCalledWith({ apiKey: "sk-test", model: appConfig.openaiModel });
     expect(assess).toHaveBeenCalledOnce();
@@ -201,7 +137,7 @@ describe("analyzeJob with the assessor", () => {
       readSettings: () =>
         Promise.resolve({ openaiApiKey: "sk-test", openaiModel: "my-model", preferences: ["Remote work"] }),
     });
-    await analyzeJob({}, all);
+    await analyzeJob(all);
 
     expect(createAssessor).toHaveBeenCalledWith({ apiKey: "sk-test", model: "my-model" });
     expect(assess).toHaveBeenCalledWith({ payload, preferences: ["Remote work"] });
@@ -212,7 +148,7 @@ describe("analyzeJob with the assessor", () => {
     const extract = vi.fn().mockReturnValue(new Promise<LlmJobValues>((resolve) => (finishExtraction = resolve)));
     const { all, assess } = deps({ readSettings: withPreferences, createExtractor: () => ({ extract }) });
 
-    const running = analyzeJob({}, all);
+    const running = analyzeJob(all);
     await vi.waitFor(() => expect(assess).toHaveBeenCalledOnce());
     expect(extract).toHaveBeenCalledOnce();
 
@@ -224,7 +160,7 @@ describe("analyzeJob with the assessor", () => {
     const { all, assess } = deps({ readSettings: withPreferences });
     assess.mockRejectedValue(new RateLimitError("OpenAI rate limit or quota reached."));
 
-    const result = await analyzeJob({}, all);
+    const result = await analyzeJob(all);
 
     expect(result.values.company).toBe("Ryvo");
     expect(result.values.preferenceFit).toBeNull();
@@ -235,7 +171,7 @@ describe("analyzeJob with the assessor", () => {
     const { all, assess } = deps({ readSettings: withPreferences });
     assess.mockRejectedValue(new Error("secret-preference-marker"));
 
-    const result = await analyzeJob({}, all);
+    const result = await analyzeJob(all);
 
     expect(result.assessmentError).toBe("Something went wrong while judging this job.");
     expect(result.assessmentError).not.toContain("secret-preference-marker");
@@ -246,46 +182,7 @@ describe("analyzeJob with the assessor", () => {
     const { all, assess } = deps({ readSettings: withPreferences, createExtractor: () => ({ extract }) });
     assess.mockRejectedValue(new RateLimitError("limited"));
 
-    await expect(analyzeJob({}, all)).rejects.toBeInstanceOf(NetworkError);
+    await expect(analyzeJob(all)).rejects.toBeInstanceOf(NetworkError);
     await vi.waitFor(() => expect(assess).toHaveBeenCalledOnce());
-  });
-
-  it("calls neither model for a job already in the sheet, and returns its stored assessment", async () => {
-    const { all, find, createExtractor, createAssessor } = deps({ readSettings: withPreferencesAndSheet });
-    find.mockResolvedValue({ row: 7, values: { ...saved.values, ...assessment } });
-
-    const result = await analyzeJob({}, all);
-
-    expect(createExtractor).not.toHaveBeenCalled();
-    expect(createAssessor).not.toHaveBeenCalled();
-    expect(result.values).toMatchObject(assessment);
-  });
-
-  it("with refresh, replaces the stored assessment with the new one", async () => {
-    const { all, find } = deps({ readSettings: withPreferencesAndSheet });
-    find.mockResolvedValue({
-      row: 7,
-      values: { ...saved.values, preferenceFit: "No: Remote work" },
-    });
-
-    const result = await analyzeJob({ refresh: true }, all);
-
-    expect(result.existing).toBe(true);
-    expect(result.values).toMatchObject(assessment);
-  });
-
-  it("with refresh, keeps the stored assessment when none is attempted or the attempt fails", async () => {
-    const stored = { ...saved.values, preferenceFit: "No: Remote work" };
-
-    const off = deps({ readSettings: withSheet });
-    off.find.mockResolvedValue({ row: 7, values: stored });
-    expect((await analyzeJob({ refresh: true }, off.all)).values).toMatchObject({ preferenceFit: "No: Remote work" });
-
-    const failing = deps({ readSettings: withPreferencesAndSheet });
-    failing.find.mockResolvedValue({ row: 7, values: stored });
-    failing.assess.mockRejectedValue(new RateLimitError("limited"));
-    const result = await analyzeJob({ refresh: true }, failing.all);
-    expect(result.values).toMatchObject({ preferenceFit: "No: Remote work" });
-    expect(result.assessmentError).toBe("limited");
   });
 });

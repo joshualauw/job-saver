@@ -13,7 +13,7 @@ export interface SaveDeps {
 
 const defaultDeps: SaveDeps = { readSettings: () => readSettings(), createSink };
 
-/** Composition root for "Save": append a new row or update the one for the same job URL. */
+/** Composition root for "Save": write a new row or update the one with the same job ID. */
 export async function saveJob(
   values: Readonly<Record<string, unknown>>,
   deps: SaveDeps = defaultDeps,

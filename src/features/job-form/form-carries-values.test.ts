@@ -12,10 +12,12 @@ const draft = {
   jobUrl: "https://id.jobstreet.com/id/job/94811596",
   skills: ["node.js"],
   preferenceFit: "Yes: Remote work",
+  jobId: "abcdefghijkl",
 };
 
-// The assessment fields are never rendered as inputs, so react-hook-form never registers them. They
-// must still reach Save, or saving would blank the sheet's assessment columns.
+// The assessment fields and the job ID are never rendered as inputs, so react-hook-form never
+// registers them. They must still reach Save, or saving would blank the sheet's assessment columns
+// and the row could not be found again.
 describe("assessment values through react-hook-form", () => {
   const inputs = toFormInputs(draft);
 
@@ -35,6 +37,19 @@ describe("assessment values through react-hook-form", () => {
 
     const result = submitted ? validateInputs(submitted) : null;
     expect(result?.ok && result.values.preferenceFit).toBe("Yes: Remote work");
+  });
+
+  it("carry the job ID out of a submit, and a retargeted ID replaces it", async () => {
+    const control = createFormControl<FormInputs>({ defaultValues: inputs, resolver: jobFormResolver });
+    expect(formFields.map((field) => field.key)).not.toContain("jobId");
+
+    control.setValue("jobId", "zzzzzzzzzzzz");
+
+    let submitted: FormInputs | undefined;
+    await control.handleSubmit((data) => {
+      submitted = data;
+    })();
+    expect(submitted?.["jobId"]).toBe("zzzzzzzzzzzz");
   });
 
   it("are part of the values the change subscription reports", () => {

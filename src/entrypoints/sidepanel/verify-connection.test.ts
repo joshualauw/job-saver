@@ -8,7 +8,7 @@ import type { VerifyDeps } from "./verify-connection";
 
 function deps(overrides: Partial<VerifyDeps> = {}) {
   const verify = vi.fn().mockResolvedValue({ columns: 18 });
-  const createSink = vi.fn().mockReturnValue({ find: vi.fn(), save: vi.fn(), verify });
+  const createSink = vi.fn().mockReturnValue({ save: vi.fn(), verify });
   const all: VerifyDeps = {
     readSettings: () => Promise.resolve({ spreadsheetId: "sheet-id" }),
     createSink,

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { formFields } from "@/features/job-form/form-values";
+
 import { fields } from "./fields";
 
 describe("field config", () => {
@@ -24,6 +26,12 @@ describe("field config", () => {
         expect("hint" in field && field.hint.length > 0).toBe(true);
       }
     }
+  });
+
+  it("keeps the job ID code-owned, required and out of the form inputs", () => {
+    const jobId = fields.find((field) => field.key === "jobId");
+    expect(jobId).toMatchObject({ column: "Job ID", source: "derived", required: true, hidden: true });
+    expect(formFields.some((field) => field.key === "jobId")).toBe(false);
   });
 
   it("never marks a field both required and nullable", () => {

@@ -33,6 +33,8 @@ export interface FieldDef {
    * where an empty array already means "none".
    */
   readonly nullable?: boolean;
+  /** Carried through the form and saved, but never shown as an input (e.g. the job ID). */
+  readonly hidden?: boolean;
 }
 
 type FieldBaseValue<F extends FieldDef> = F["type"] extends "number"
@@ -96,11 +98,14 @@ export interface JobSource {
   readonly jobUrl: string;
 }
 
-/** A job row that is already in the sheet, decoded by field key. */
-export interface SavedJob {
-  /** 1-based sheet row. Informational only: it is never stored, rows are re-found by URL. */
+/** A saved job as the Save To picker shows it: identity plus enough text to recognise it. */
+export interface ListedJob {
+  readonly id: string;
+  readonly company: string;
+  readonly jobTitle: string;
+  readonly platform: string | null;
+  /** 1-based sheet row. Informational only: it is never stored, rows are re-found by ID. */
   readonly row: number;
-  readonly values: Readonly<Record<string, unknown>>;
 }
 
 export interface SaveResult {
@@ -110,10 +115,12 @@ export interface SaveResult {
 
 /** Where jobs are saved (Google Sheets today); implementations live in features. */
 export interface Sink {
-  /** The saved row for this clean job URL, if any. */
-  find(jobUrl: string): Promise<SavedJob | null>;
-  /** Appends a new row, or updates the existing row for the same job URL. */
+  /** Every saved job that has an ID, in sheet order. */
+  list(): Promise<ListedJob[]>;
+  /** Writes a new row, or updates the existing row with the same job ID. */
   save(values: Readonly<Record<string, unknown>>): Promise<SaveResult>;
+  /** Gives an ID to every job row that has none (rows saved before IDs existed). */
+  backfillIds(): Promise<{ readonly filled: number }>;
   /**
    * Checks the destination is reachable and has every configured column; throws a typed error
    * naming what is wrong. `columns` is how many configured columns were found.

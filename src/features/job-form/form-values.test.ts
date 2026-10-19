@@ -21,6 +21,7 @@ const draft = {
   summary: "Builds software.",
   notes: null,
   preferenceFit: "Yes: Remote work\nNo: Salary above 10M",
+  jobId: "abcdefghijkl",
 };
 
 describe("toFormInputs", () => {

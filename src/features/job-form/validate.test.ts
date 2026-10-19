@@ -20,6 +20,7 @@ const valid: FormInputs = toFormInputs({
   maxSalary: null,
   summary: "Builds software.",
   notes: null,
+  jobId: "abcdefghijkl",
 });
 
 function errorsOf(inputs: FormInputs): Record<string, string> {
