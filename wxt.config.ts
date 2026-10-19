@@ -21,7 +21,7 @@ export default defineConfig({
 
     return {
       name: "Job Saver",
-      description: "Turn highlighted job postings into rows in your Google Sheet, with AI.",
+      description: "Turn job postings (text, images or files) into rows in your Google Sheet, with AI.",
       key: EXTENSION_KEY,
       // No access to web pages at all: highlighted text arrives through the right-click menu, which
       // hands it to the extension without any host permission.

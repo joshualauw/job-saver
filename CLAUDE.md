@@ -1,7 +1,7 @@
 # Job Saver: rules for Claude
 
-Personal Chrome extension (MV3 side panel): AI extracts job fields from the current page, the
-user reviews them, Save writes a row to a Google Sheet.
+Personal Chrome extension (MV3 side panel): AI extracts job fields from a posting the user provides
+(text, images or a file), the user reviews them, Save writes a row to a Google Sheet.
 
 - What it is and how it is shaped: [ARCHITECTURE.md](ARCHITECTURE.md).
   Read the architecture before cross-feature work. If a doc and the code disagree, the code wins:
@@ -16,13 +16,17 @@ user reviews them, Save writes a row to a Google Sheet.
    name, sheet column, enum value or input elsewhere.
 2. Map sheet columns by **header name**, never position.
 3. Guard sheet-bound text against formula injection (`=`, `+`, `-`, `@`).
-4. Page text is untrusted: user message only, never the system prompt.
-5. Never log, commit or show secrets, personal data or page content (API key, tokens, job text,
-   preferences, fixtures).
+4. Job text is untrusted, including text read from images and files: user message only, never the
+   system prompt.
+5. Never log, commit or show secrets, personal data or job content (API key, tokens, job text,
+   images, files, preferences).
 6. Secrets and preferences live only in `chrome.storage.local`; never ship a build with a key.
 7. The model name comes from config/settings, never an adapter.
-8. No backend; the only network hosts are OpenAI and Google Sheets.
-9. The AI never sets code- or user-owned fields; prefer `null` (or `[]`) over guessing.
+8. No backend; the only network hosts are OpenAI and Google Sheets. The extension never reads web
+   pages and asks for no host permissions beyond those two; text reaches it from the user (typing,
+   the right-click menu, images, files).
+9. The AI never sets code- or user-owned fields (a field's `owner`); prefer `null` (or `[]`) over
+   guessing.
 10. OpenAI requests use `store: false`; user-facing errors never include the key or request
     content (keep the original only as `cause`).
 
@@ -33,10 +37,9 @@ user reviews them, Save writes a row to a Google Sheet.
   `.nullable()`, never `.optional()`.
 - Features own their components, hooks and adapters and never import each other's internals; share
   through `src/core`. Core stays free of `openai`, `fetch` and `chrome`.
-- Wrap `chrome.*` in `src/lib/chrome.ts`. Page reading is a bundled unlisted script, never a
-  serialised `func`; keep its logic in pure functions over a `Document`.
-- Site-specific knowledge (hosts, URL cleaning, selectors) lives in `src/config/platforms.ts`.
-- Reuse existing helpers (text extraction, list normalisation, row mapping); don't re-implement.
+- Wrap `chrome.*` in `src/lib/chrome.ts`.
+- Reuse existing helpers (job text preparation, list normalisation, row mapping, prompt fencing);
+  don't re-implement.
 - Adapters throw typed `AppError`s with user-safe messages; never swallow errors or fill the form
   with unvalidated AI output.
 - React: function components and hooks, one component per file; Chakra v3 with semantic tokens;
@@ -48,8 +51,9 @@ user reviews them, Save writes a row to a Google Sheet.
 ## Testing
 
 - Pure logic and adapters get Vitest tests with the change; bugs get a regression test first.
-- Fixtures live in `tests/fixtures/<platform>/<n>/`, are scrubbed of personal data (saved logged-in
-  pages embed the account email/name), and are loaded with scripts disabled, never executed.
+- Test data is made up. Never commit real postings, screenshots or anything with personal data.
+- The test DOM cannot render some Chakra widgets (select, combobox, tags input): check those in a
+  browser.
 - Before calling work done: `pnpm typecheck`, `pnpm lint`, `pnpm test` pass.
 
 ## Workflow

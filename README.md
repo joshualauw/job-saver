@@ -1,8 +1,9 @@
 # Job Saver
 
 A Chrome side-panel extension that turns "read a job posting, copy details into a spreadsheet" into
-"click, glance, save". AI fills in the fields, you review them, and one click writes a row to your
-own Google Sheet. It can also check a job against your preferences.
+"drop it in, glance, save". Give it the posting as text, screenshots or a file; AI fills in the
+fields, you review them, and one click writes a row to your own Google Sheet. It can also check a
+job against your preferences.
 
 This is a personal project, built step by step with Claude Code. It runs entirely in your browser:
 no backend, no accounts, no tracking. You bring your own OpenAI key and your own Google Sheet.
@@ -11,21 +12,20 @@ no backend, no accounts, no tracking. You bring your own OpenAI key and your own
 
 ## What it does
 
-- **Analyze a posting.** On a job page, click Analyze. AI reads the page and fills the tracked
-  fields (company, title, location type, salary, skills, summary and more). Anything it can't find
-  is flagged "Not found" instead of guessed.
+- **Save a posting from anywhere.** Paste or type the text, highlight it on any page and send it
+  from the right-click menu, add screenshots, or add a PDF or text file. It never reads the pages
+  you browse, so there is nothing to set up per site.
+- **AI fills the form.** Company, title, location type, salary, skills, summary and more. Anything it
+  can't find is flagged "Not found" instead of guessed.
 - **Review, then save.** Every value is editable before it goes anywhere. Save adds a row to your
-  sheet, or updates the existing row if you saved that job before.
+  sheet. **Save To** writes the form into a job you saved earlier instead.
 - **Preference check (optional).** Add a list of preferences, either what you want from a job or
   skills and experience you have. Each analysis then also shows a card with a yes / no for each
   preference. What the posting does not mention counts as no.
-- **Highlight to narrow it down.** Select part of the page and the button shows how many characters
-  it will read.
-- **Works on other sites too**, with less accuracy. Jobstreet has dedicated support.
 
 ## Requirements
 
-- Chrome (or another Chromium browser that supports the side panel), signed in to a Google account
+- Chrome 116 or newer (or another Chromium browser that supports the side panel), signed in to a Google account
 - Node.js 22.13 or newer, and [pnpm](https://pnpm.io) (`corepack enable` is enough)
 - An [OpenAI API key](https://platform.openai.com/api-keys)
 - A Google account for the spreadsheet and a Google Cloud project (free) for sign-in
@@ -82,7 +82,12 @@ Tip: pasting the line above into cell A1 splits it across columns, since the hea
 separated. If it lands in one cell, type them in by hand.
 
 **Job ID** is how the app recognises a job when you save to it again. It is filled in for you and
-never shown in the panel.
+never shown in the panel. **Source** says where you found the posting (a dropdown of common
+places, or any text you type) and **Source URL** is an optional link; both are yours to fill in.
+
+Coming from version 1? Rename the `Platform` header to `Source` and `Job URL` to `Source URL`, add
+a `Job ID` header, and give each existing row a unique Job ID (any short text works). A row without
+an ID still holds your data but will not show up in Save To.
 
 New jobs are written into the first empty row that has your formatting, so any dropdowns or formats
 you set up on the columns are kept. Past the formatted rows, Google adds new rows for you.
@@ -113,35 +118,51 @@ Settings.
 
 ## Using it
 
-1. Open a job posting and click **Analyze**.
-2. Check the form. "Not found" badges show what the AI couldn't determine.
-3. Click **Save**. Open the same job later and the panel shows the saved row, with a
-   **Re-analyze** option that refreshes the AI fields and leaves your own columns alone.
+1. Add the posting in one of three tabs. Only the tab you are on is analyzed, and each tab keeps
+   what you put in it while you look at another.
+   - **Text:** type or paste it. You can also highlight text on any page, right-click and choose
+     **Send to Job Saver**; it opens the panel and fills this tab.
+   - **Image:** add up to 5 screenshots (click, drop or paste), in reading order.
+   - **File:** add one PDF, `.txt` or `.md` file.
+2. Click **Analyze**. A short checklist shows what it is doing: reading the image or file, filling the
+   form, and checking your preferences if you set any.
+3. Check the form. Empty fields with an orange outline are ones the AI could not determine.
+4. Click **Save**, or use **Save to an existing job…** to pick a saved job and overwrite it with the form.
+   The button then reads **Update job**.
 
-On a site without dedicated support, Analyze first asks you to allow Job Saver on that site (one
-click, per site). Results are better if you highlight just the job description first.
+Once a form is showing, the input folds away under a one-line summary and the button becomes
+**Re-Analyze**. It runs the analysis again and replaces the form, so edits you made are lost.
+
+Images and PDFs need a model that can read them, which you can set in Settings. They are only kept
+in memory, so they are forgotten when you close the panel. The text tab is remembered.
 
 ## Privacy and safety
 
 - Your API key and preferences are stored in your browser only. They never go into the sheet.
-- Page text (and your preferences, if set) is sent to OpenAI to do the work, and rows are written to Google
-  Sheets. Nothing else leaves your browser. Requests to OpenAI set `store: false`.
+- The text, images or file you analyze (and your preferences, if set) are sent to OpenAI to do the
+  work, and rows are written to Google Sheets. Nothing else leaves your browser. Requests to OpenAI
+  set `store: false`.
+- The extension asks for no access to the pages you browse. The only sites it talks to are OpenAI
+  and Google.
 - The key is used directly from the browser. That is fine for a personal build; never publish a
   build that contains a key.
 - The preference check is an AI reading of the posting, not advice. Read the posting before trusting it.
-- Respect the terms of the sites you use this on. It reads the page you are looking at, only when
-  you click Analyze.
+- Respect the terms of the sites you copy postings from.
 
-Each Analyze makes one OpenAI request, or two if you have set preferences.
+Each Analyze makes one OpenAI request for text, or two if you have set preferences. Images and PDFs
+add one more request to read them.
 
 ## Troubleshooting
 
-| Problem                                          | What to check                                                                                                                                    |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Google sign-in fails                             | You are signed in to Chrome; your account is a test user; the client's Item ID matches the extension ID; you rebuilt after editing `.env.local`. |
-| "The sheet is missing these header columns"      | Add the named headers to row 1 of your tab. Test connection lists them.                                                                          |
-| "Job Saver doesn't have access to this site yet" | Click the **Allow Job Saver on ...** button under the message.                                                                                   |
-| Values are wrong or empty on another site        | Highlight the job description and Analyze again, or add dedicated support for that site (see ARCHITECTURE.md).                                    |
+| Problem                                       | What to check                                                                                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Google sign-in fails                          | You are signed in to Chrome; your account is a test user; the client's Item ID matches the extension ID; you rebuilt after editing `.env.local`. |
+| "The sheet is missing these header columns"   | Add or rename the named headers in row 1 of your tab. Test connection lists them.                                                                |
+| Right-click does not show "Send to Job Saver" | The item appears only when text is highlighted. Reload the extension on `chrome://extensions` if it is still missing.                            |
+| "Couldn't find any readable text"             | Try a clearer or larger screenshot, or another file. Scanned PDFs with very small text can fail.                                                 |
+| "OpenAI rejected the request"                 | The model in Settings may not accept images or files. Try a different one.                                                                       |
+| A job is missing from Save To                 | Its row has no Job ID. Give it a unique one in the sheet.                                                                                        |
+| Values are wrong or empty                     | Add the posting's full text, including the title, company and pay lines.                                                                         |
 
 ## Development
 

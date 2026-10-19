@@ -1,6 +1,6 @@
 {
   "name": "job-saver",
-  "version": "1.3.0",
+  "version": "2.0.0",
   "private": true,
   "description": "Chrome side-panel extension that turns job postings (text, images, files) into rows in your Google Sheet, with AI.",
   "type": "module",
