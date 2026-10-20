@@ -185,8 +185,8 @@ export const fields = [
     hint: "Specific requirements, perks and conditions outside the core job, as short phrases separated by '; ': e.g. BPJS or insurance, working hours, visa or work-permit requirements, relocation support, bonuses, probation, sister company. Do not repeat the summary or other fields. Null if none are stated.",
   },
   {
+    // Shown in the panel as the "Fit for you" card and never saved to the sheet, so it has no column.
     key: "preferenceFit",
-    column: "Preference Fit",
     label: "Preference fit",
     type: "text",
     owner: "assessment",
@@ -202,6 +202,9 @@ export const fields = [
     required: true,
   },
 ] as const satisfies readonly FieldDef[];
+
+/** The sheet headers the app needs, in field order. Fields without a column are not in the sheet. */
+export const sheetColumns: readonly string[] = fields.flatMap((field) => ("column" in field ? [field.column] : []));
 
 export type JobFieldKey = (typeof fields)[number]["key"];
 export type JobValues = ValuesOf<typeof fields>;

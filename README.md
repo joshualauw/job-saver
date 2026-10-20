@@ -21,7 +21,8 @@ no backend, no accounts, no tracking. You bring your own OpenAI key and your own
   sheet. **Save To** writes the form into a job you saved earlier instead.
 - **Preference check (optional).** Add a list of preferences, either what you want from a job or
   skills and experience you have. Each analysis then also shows a card with a yes / no for each
-  preference. What the posting does not mention counts as no.
+  preference. What the posting does not mention counts as no. The card is shown in the panel only;
+  it is never written to the sheet.
 
 ## Requirements
 
@@ -71,12 +72,12 @@ Settings) and put these headers in row 1. Order does not matter, and you can add
 columns.
 
 ```
-Company	Job Title	Address	Contract Type	Location Type	Source	Source URL	Min YOE	Skills	Salary Currency	Salary Period	Min Salary	Max Salary	Summary	Notes	Preference Fit	Job ID
+Company	Job Title	Address	Contract Type	Location Type	Source	Source URL	Min YOE	Skills	Salary Currency	Salary Period	Min Salary	Max Salary	Summary	Notes	Job ID
 ```
 
 The list comes from [`src/config/fields.ts`](src/config/fields.ts), which is the single source of
-truth for fields. All headers are required, even if you never use the fit assessment. Settings has a
-**Test connection** button that tells you exactly which headers are missing.
+truth for fields. All of these headers are required. Settings has a **Test connection** button that
+tells you exactly which headers are missing.
 
 Tip: pasting the line above into cell A1 splits it across columns, since the headers are tab
 separated. If it lands in one cell, type them in by hand.
@@ -87,7 +88,8 @@ places, or any text you type) and **Source URL** is an optional link; both are y
 
 Coming from version 1? Rename the `Platform` header to `Source` and `Job URL` to `Source URL`, add
 a `Job ID` header, and give each existing row a unique Job ID (any short text works). A row without
-an ID still holds your data but will not show up in Save To.
+an ID still holds your data but will not show up in Save To. The old `Preference Fit` column is no
+longer used: the app ignores it and leaves what is in it alone, so you can delete it or keep it.
 
 New jobs are written into the first empty row that has your formatting, so any dropdowns or formats
 you set up on the columns are kept. Past the formatted rows, Google adds new rows for you.

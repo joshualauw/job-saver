@@ -33,7 +33,10 @@ interface ResolvedColumn {
   readonly index: number;
 }
 
-/** Maps each field to its column index by header name. Throws if any are missing. */
+/**
+ * Maps each field that has a sheet column to its column index by header name. Throws if any are
+ * missing. Fields without a column live only in the extension and are skipped.
+ */
 function resolveColumns(fields: readonly FieldDef[], headerRow: readonly string[]): ResolvedColumn[] {
   const indexByHeader = new Map<string, number>();
   headerRow.forEach((header, index) => {
@@ -44,6 +47,7 @@ function resolveColumns(fields: readonly FieldDef[], headerRow: readonly string[
   const resolved: ResolvedColumn[] = [];
   const missing: string[] = [];
   for (const field of fields) {
+    if (field.column === undefined) continue;
     const index = indexByHeader.get(normalizeHeader(field.column));
     if (index === undefined) missing.push(field.column);
     else resolved.push({ field, index });

@@ -2,14 +2,20 @@ import { describe, expect, it } from "vitest";
 
 import { formFields } from "@/features/job-form/form-values";
 
-import { fields } from "./fields";
+import { fields, sheetColumns } from "./fields";
 
 describe("field config", () => {
   it("has unique keys and sheet columns", () => {
     const keys = fields.map((field) => field.key);
-    const columns = fields.map((field) => field.column.toLowerCase());
+    const columns = sheetColumns.map((column) => column.toLowerCase());
     expect(new Set(keys).size).toBe(keys.length);
     expect(new Set(columns).size).toBe(columns.length);
+  });
+
+  it("gives every field a sheet column except the preference fit, which stays in the extension", () => {
+    const without = fields.filter((field) => !("column" in field)).map((field) => field.key);
+    expect(without).toEqual(["preferenceFit"]);
+    expect(sheetColumns).not.toContain("Preference Fit");
   });
 
   it("gives every enum field options", () => {

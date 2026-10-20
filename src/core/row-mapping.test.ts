@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { fields } from "@/config/fields";
+import { fields, sheetColumns } from "@/config/fields";
 
 import { MissingColumnsError, SchemaError } from "./errors";
 import { asSheetReturns } from "../../tests/helpers/as-sheet-returns";
 import { asText, columnIndexOf, fromSheetRow, toSheetCells, toSheetRow } from "./row-mapping";
 import type { FieldDef } from "./types";
 
-const header = fields.map((field) => field.column);
+const header = [...sheetColumns];
 
 const values = {
   company: "Acme",
@@ -57,7 +57,6 @@ describe("toSheetRow", () => {
       "",
       "'Builds APIs.",
       "'BPJS; 9-5 working hours",
-      "'Yes: Remote work\nNo: Salary above 10M",
       "'abcdefghijkl",
     ]);
   });
@@ -135,7 +134,9 @@ describe("toSheetRow", () => {
 describe("fromSheetRow", () => {
   it("round-trips a row written by toSheetRow", () => {
     const row = asSheetReturns(toSheetRow(fields, values, header));
-    expect(fromSheetRow(fields, row, header)).toEqual(values);
+    // Everything that has a sheet column; the fit has none, so it is not part of the round trip.
+    const stored = Object.fromEntries(Object.entries(values).filter(([key]) => key !== "preferenceFit"));
+    expect(fromSheetRow(fields, row, header)).toEqual(stored);
   });
 
   it("treats short rows (trailing empty cells omitted by Sheets) as null / empty list", () => {
@@ -197,7 +198,7 @@ describe("toSheetCells", () => {
     const withExtra = ["Comments", ...header];
     const cells = toSheetCells(fields, values, withExtra);
 
-    expect(cells).toHaveLength(fields.length);
+    expect(cells).toHaveLength(sheetColumns.length);
     expect(cells.map((cell) => cell.index)).not.toContain(0);
     expect(cells.find((cell) => cell.index === withExtra.indexOf("Company"))?.value).toBe("'Acme");
   });
@@ -218,19 +219,26 @@ describe("columnIndexOf", () => {
   });
 });
 
-describe("assessment columns", () => {
-  it("keep multi-line text", () => {
+describe("fields without a column (extension only)", () => {
+  it("are never written: a row holds exactly the fields that have a column", () => {
     const row = toSheetRow(fields, values, header);
-    expect(row[header.indexOf("Preference Fit")]).toBe("'Yes: Remote work\nNo: Salary above 10M");
+    expect(row).toHaveLength(sheetColumns.length);
+    expect(row.some((cell) => String(cell).includes("Remote work"))).toBe(false);
+    expect(toSheetCells(fields, values, header)).toHaveLength(sheetColumns.length);
   });
 
-  it("guard assessment text against formula injection like any other text", () => {
-    const row = toSheetRow(fields, { ...values, preferenceFit: "=IMPORTXML(...)" }, header);
-    expect(row[header.indexOf("Preference Fit")]).toBe("'=IMPORTXML(...)");
+  it("do not need a header: a sheet without a fit column is complete", () => {
+    expect(() => toSheetRow(fields, values, header)).not.toThrow();
   });
 
-  it("are required columns: a sheet without them is reported as missing", () => {
-    const old = header.filter((name) => name !== "Preference Fit");
-    expect(() => toSheetRow(fields, values, old)).toThrow(/Preference Fit/);
+  it("are left out when reading a row back", () => {
+    const row = toSheetRow(fields, values, header);
+    expect(fromSheetRow(fields, asSheetReturns(row), header)).not.toHaveProperty("preferenceFit");
+  });
+
+  it("leave an old fit column that is still in the sheet alone", () => {
+    const withOldColumn = [...header, "Preference Fit"];
+    const row = toSheetRow(fields, values, withOldColumn);
+    expect(row[withOldColumn.indexOf("Preference Fit")]).toBe("");
   });
 });

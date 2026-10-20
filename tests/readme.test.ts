@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { fields } from "@/config/fields";
+import { sheetColumns } from "@/config/fields";
 
 const read = (name: string) => readFileSync(fileURLToPath(new URL(`../${name}`, import.meta.url)), "utf8");
 
@@ -12,7 +12,7 @@ describe("README", () => {
     const line = read("README.md")
       .split("\n")
       .find((candidate) => candidate.includes("\t"));
-    expect(line?.split("\t")).toEqual(fields.map((field) => field.column));
+    expect(line?.split("\t")).toEqual(sheetColumns);
   });
 });
 

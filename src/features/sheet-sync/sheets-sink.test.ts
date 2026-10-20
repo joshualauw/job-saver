@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { fields } from "@/config/fields";
+import { fields, sheetColumns } from "@/config/fields";
 import { MissingColumnsError, SchemaError, UnexpectedError } from "@/core/errors";
 import { toSheetRow } from "@/core/row-mapping";
 import { asSheetReturns } from "../../../tests/helpers/as-sheet-returns";
@@ -14,7 +14,7 @@ const ID_A = "aaaaaaaaaaaa";
 const ID_B = "bbbbbbbbbbbb";
 
 // The sheet has every configured column plus one the user added themselves.
-const header = [...fields.map((field) => field.column), "My Comments"];
+const header = [...sheetColumns, "My Comments"];
 const col = (name: string) => header.indexOf(name);
 
 function values(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -113,7 +113,7 @@ describe("sheets sink: save a new job", () => {
     await sink.save(values());
 
     const body = post.mock.calls[0]?.[1] as BatchBody;
-    expect(body.data).toHaveLength(fields.length);
+    expect(body.data).toHaveLength(sheetColumns.length);
     expect(body.data.map((entry) => entry.range)).not.toContain(`'Jobs'!${columnLetter(col("My Comments"))}2`);
   });
 
@@ -181,7 +181,7 @@ describe("sheets sink: save over an existing job", () => {
     const ranges = body.data.map((entry) => entry.range);
     expect(ranges).toContain(`'Jobs'!${columnLetter(col("Company"))}3`);
     expect(ranges).not.toContain(`'Jobs'!${columnLetter(col("My Comments"))}3`);
-    expect(body.data).toHaveLength(fields.length);
+    expect(body.data).toHaveLength(sheetColumns.length);
   });
 });
 
@@ -203,7 +203,7 @@ describe("sheets sink: validation", () => {
 describe("sheets sink: verify", () => {
   it("reports how many configured columns the header has", async () => {
     const { sink, get } = fakeClient([header]);
-    await expect(sink.verify()).resolves.toEqual({ columns: fields.length });
+    await expect(sink.verify()).resolves.toEqual({ columns: sheetColumns.length });
     expect(get).toHaveBeenCalledOnce();
   });
 
@@ -218,5 +218,39 @@ describe("sheets sink: verify", () => {
 
   it("treats an empty tab as missing all columns", async () => {
     await expect(fakeClient(undefined).sink.verify()).rejects.toBeInstanceOf(MissingColumnsError);
+  });
+});
+
+describe("sheets sink: extension-only fields", () => {
+  it("never writes the preference fit to the sheet", async () => {
+    const { sink, post } = fakeClient([header]);
+    await sink.save(values({ preferenceFit: "Yes: Remote work" }));
+
+    const body = post.mock.calls[0]?.[1] as BatchBody;
+    expect(JSON.stringify(body)).not.toContain("Remote work");
+    expect(body.data).toHaveLength(sheetColumns.length);
+  });
+
+  it("works with a sheet that has no Preference Fit column", async () => {
+    const { sink } = fakeClient([header]);
+    await expect(sink.save(values({ preferenceFit: "Yes: Remote work" }))).resolves.toEqual({
+      action: "created",
+      row: 2,
+    });
+  });
+
+  it("leaves an old Preference Fit column, and what it holds, untouched when a job is updated", async () => {
+    const oldHeader = [...header, "Preference Fit"];
+    const { sink, post } = fakeClient([oldHeader, [...rowFor(), "Yes: old value"]]);
+
+    await expect(sink.save(values({ preferenceFit: "No: new value" }))).resolves.toEqual({
+      action: "updated",
+      row: 2,
+    });
+
+    const body = post.mock.calls[0]?.[1] as BatchBody;
+    const oldColumnRange = `'Jobs'!${columnLetter(oldHeader.indexOf("Preference Fit"))}2`;
+    expect(body.data.map((entry) => entry.range)).not.toContain(oldColumnRange);
+    expect(JSON.stringify(body)).not.toContain("new value");
   });
 });

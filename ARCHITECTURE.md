@@ -54,10 +54,11 @@ flowchart TD
 
 ## What makes it more than a form
 
-- **Fields are data.** One list defines every tracked field: its sheet column, its owner (the AI, the
-  user, code or the assessment), its type and how it is laid out. The form, the validation schemas,
-  the model's output schema and the sheet mapping are all derived from it, so adding a field is a
-  one-place change.
+- **Fields are data.** One list defines every tracked field: its sheet column, its owner (the AI,
+  the user, code or the assessment), its type and how it is laid out. The form, the validation
+  schemas, the model's output schema and the sheet mapping are all derived from it, so adding a
+  field is a one-place change. A field with no sheet column, such as the preference fit, lives only
+  in the extension and is never written to the sheet.
 - **The posting is untrusted.** Job text comes from arbitrary sources, including what an image or PDF
   contains, so it goes only in the user message, fenced and escaped, and the prompts tell the model
   to ignore instructions inside it. A posting cannot talk up its own fit.

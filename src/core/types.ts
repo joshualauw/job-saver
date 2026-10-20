@@ -18,8 +18,11 @@ export interface EnumOption {
 export interface FieldDef {
   /** camelCase, stable identifier in code. */
   readonly key: string;
-  /** Exact header text in row 1 of the Google Sheet. */
-  readonly column: string;
+  /**
+   * Exact header text in row 1 of the Google Sheet. A field without one lives only in the extension:
+   * it is never written to or read from the sheet, and the sheet needs no column for it.
+   */
+  readonly column?: string;
   readonly label: string;
   readonly type: FieldType;
   /** Who is responsible for the value. */
