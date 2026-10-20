@@ -58,8 +58,11 @@ export function buildSystemPrompt(summaryLanguage: string = appConfig.summaryLan
     "- Enum fields must use one of the allowed values; use 'other' or null when nothing fits.",
     "- minYoe is the minimum years of experience required, as a number.",
     ...SKILLS_RULES,
-    `- summary: 1-3 neutral sentences in ${summaryLanguage} describing the role. No marketing ` +
-      "language, and do not repeat the other fields.",
+    `- summary: what the role does, as 2-4 short phrases separated by "; " in ${summaryLanguage}. ` +
+      "Write fragments, not sentences: no subject and no \"The role\" or \"You will\", each phrase " +
+      "starting with a verb or a noun, e.g. build REST APIs; maintain existing systems; own " +
+      "technical improvements. Keep it to a line, neutral, with no marketing language, and do not " +
+      "repeat the other fields.",
     `- notes: concise requirements, perks and conditions that sit outside the core job, as short ` +
       `phrases separated by "; " in ${summaryLanguage}. Examples: BPJS or other insurance, working ` +
       "hours or schedule, visa or work-permit requirements, relocation support, bonuses and " +

@@ -45,9 +45,17 @@ describe("buildSystemPrompt", () => {
   });
 
   it("uses the configured language for summary and notes", () => {
-    expect(buildSystemPrompt("Indonesian")).toContain("summary: 1-3 neutral sentences in Indonesian");
-    expect(buildSystemPrompt("Indonesian")).toContain('separated by "; " in Indonesian');
+    expect(buildSystemPrompt("Indonesian")).toMatch(/summary: .*short phrases separated by "; " in Indonesian/);
+    expect(buildSystemPrompt("Indonesian")).toMatch(/notes: .*phrases separated by "; " in Indonesian/s);
     expect(buildSystemPrompt()).toContain("in English");
+  });
+
+  it("asks for the summary as short phrases like the notes, not sentences", () => {
+    const system = buildSystemPrompt();
+    expect(system).toMatch(/summary: what the role does, as 2-4 short phrases separated by "; "/);
+    expect(system).toMatch(/fragments, not sentences/);
+    expect(system).toMatch(/no "The role" or "You will"/);
+    expect(system).not.toMatch(/1-3 neutral sentences/);
   });
 
   it("never contains the job text", () => {

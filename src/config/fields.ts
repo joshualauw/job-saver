@@ -173,7 +173,7 @@ export const fields = [
     type: "text",
     owner: "ai",
     nullable: true,
-    hint: "1-3 neutral sentences on what the role is and anything notable. Do not repeat the other fields.",
+    hint: "What the role does, as 2-4 short phrases separated by '; ' (fragments, not sentences; no 'The role' or 'You will'). Neutral, one line. Do not repeat the other fields.",
   },
   {
     key: "notes",
