@@ -8,7 +8,21 @@ job against your preferences.
 This is a personal project, built step by step with Claude Code. It runs entirely in your browser:
 no backend, no accounts, no tracking. You bring your own OpenAI key and your own Google Sheet.
 
-<!-- Add a screenshot or short GIF of the side panel here. Do not show your API key or sheet ID. -->
+## Demo
+
+**1. Send a posting from any page.** Highlight the text, right-click and choose **Send to Job Saver**.
+The panel opens with the text filled in, and AI fills the form.
+
+![Highlighting a job posting and sending it to Job Saver from the right-click menu](demos/send-to-job-saver.png)
+
+**2. Review, check your fit, save.** Empty fields are flagged "Not found", and the preference card
+shows a yes / no for each of your preferences. Nothing is written until you click Save.
+
+<img src="demos/review-and-fit.png" alt="Job Saver form with summary, notes and the Fit for you card" width="320">
+
+**3. Settings.** Your API key, sheet and preferences stay in your browser.
+
+<img src="demos/settings.png" alt="Job Saver settings screen" width="320">
 
 ## What it does
 
